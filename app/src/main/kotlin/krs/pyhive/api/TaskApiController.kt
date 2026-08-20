@@ -1,6 +1,8 @@
 package krs.pyhive.api
 
 import android.content.Context
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
 import krs.pyhive.models.PythonTask
 import krs.pyhive.models.RescheduleTaskRequest
 import krs.pyhive.models.SubmitTaskParams
@@ -52,8 +54,7 @@ class TaskApiController(
                 ?: throw IllegalArgumentException("Missing 'params' field")
             val scriptContent = fields["script"]
                 ?: throw IllegalArgumentException("Missing 'script' field")
-
-            val args = fields["args"] ?: "{}" // Default to empty JSON object if not provided
+            val argsJson = fields["args"]
 
             val params = requestContext.parseJson<SubmitTaskParams>(paramsJson)
             val appPreferences = AppPreferences(context)
@@ -67,7 +68,7 @@ class TaskApiController(
                 scheduledTime = params.scheduledTime,
                 timeoutSeconds = timeoutSeconds,
                 tags = params.tags,
-                argsJson = args
+                argsJson = normalizeArgsJson(argsJson)
             )
 
             val taskId = taskScheduler.submitTask(task)
@@ -214,15 +215,17 @@ class TaskApiController(
         }
     }
 
-    private fun normalizeArgsJson(args: com.google.gson.JsonElement?): String {
-        if (args == null || args.isJsonNull) {
+    private fun normalizeArgsJson(argsPayload: String?): String {
+        if (argsPayload.isNullOrBlank()) {
             return "{}"
         }
 
-        if (!args.isJsonObject) {
+        val parsed: JsonElement = JsonParser.parseString(argsPayload)
+
+        if (!parsed.isJsonObject) {
             throw IllegalArgumentException("'args' must be a JSON object")
         }
 
-        return args.toString()
+        return parsed.toString()
     }
 }

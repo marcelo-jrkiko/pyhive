@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
-import kotlinx.parcelize.RawValue
 import java.util.*
 
 /**
@@ -102,17 +101,14 @@ data class SubmitTaskRequest(
     val timeoutSeconds: Long = 300,
     
     @SerializedName("tags")
-    val tags: List<String> = emptyList(),
-
-    @SerializedName("args")
-    val args: @RawValue com.google.gson.JsonElement? = null
+    val tags: List<String> = emptyList()
 ) : Parcelable
 
 /**
  * Parameters for submitting a task via multipart form.
- * The script content is provided separately as the `script` field.
+ * The script content and optional args JSON are provided separately
+ * as multipart `script` and `args` fields.
  */
-@Parcelize
 data class SubmitTaskParams(
     @SerializedName("script_name")
     val scriptName: String? = null,
@@ -124,11 +120,8 @@ data class SubmitTaskParams(
     val timeoutSeconds: Long = 300,
     
     @SerializedName("tags")
-    val tags: List<String> = emptyList(),
-
-    @SerializedName("args")
-    val args: @RawValue com.google.gson.JsonElement? = null
-) : Parcelable
+    val tags: List<String> = emptyList()
+)
 
 /**
  * Response model for task submission
