@@ -6,7 +6,7 @@ import io.objectbox.Box
 import io.objectbox.BoxStore
 import krs.pyhive.models.PythonTask
 import krs.pyhive.models.TaskStatus
-import krs.pyhive.scheduler.TaskStatistics
+import krs.pyhive.models.TaskStatistics
 import timber.log.Timber
 
 /**
