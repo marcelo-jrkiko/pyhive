@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("com.chaquo.python")
+    id("io.objectbox")
     kotlin("android")
     kotlin("kapt")
     id("kotlin-parcelize")
@@ -94,10 +95,10 @@ dependencies {
     // Security
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
-    // Room Database (for task persistence)
-    implementation("androidx.room:room-runtime:2.5.2")
-    implementation("androidx.room:room-ktx:2.5.2")
-    kapt("androidx.room:room-compiler:2.5.2")
+    // ObjectBox Database (for task persistence)
+    implementation("io.objectbox:objectbox-android:5.4.2")
+    implementation("io.objectbox:objectbox-kotlin:5.4.2")
+    kapt("io.objectbox:objectbox-processor:5.4.2")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

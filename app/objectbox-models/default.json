@@ -1,0 +1,127 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:4049591075845885667",
+      "lastPropertyId": "20:6021098588426813268",
+      "name": "TaskEntity",
+      "properties": [
+        {
+          "id": "1:265207069898766466",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:119950909957412332",
+          "name": "taskId",
+          "type": 9
+        },
+        {
+          "id": "3:4166662949165459408",
+          "name": "scriptContent",
+          "type": 9
+        },
+        {
+          "id": "4:4635887260097210750",
+          "name": "scriptName",
+          "type": 9
+        },
+        {
+          "id": "5:5392953693879835314",
+          "name": "status",
+          "type": 9
+        },
+        {
+          "id": "6:5961661331417003946",
+          "name": "scheduledTime",
+          "type": 6
+        },
+        {
+          "id": "7:8226871170993121956",
+          "name": "executionTime",
+          "type": 6
+        },
+        {
+          "id": "8:4174405058166760895",
+          "name": "createdAt",
+          "type": 6
+        },
+        {
+          "id": "9:878357267889237578",
+          "name": "startedAt",
+          "type": 6
+        },
+        {
+          "id": "10:4441694546608227183",
+          "name": "completedAt",
+          "type": 6
+        },
+        {
+          "id": "11:5121363686024605331",
+          "name": "result",
+          "type": 9
+        },
+        {
+          "id": "12:7522715020086726274",
+          "name": "error",
+          "type": 9
+        },
+        {
+          "id": "13:2207445738225644550",
+          "name": "output",
+          "type": 9
+        },
+        {
+          "id": "14:8976951429836879417",
+          "name": "userId",
+          "type": 9
+        },
+        {
+          "id": "15:5127228525792448404",
+          "name": "sandboxDir",
+          "type": 9
+        },
+        {
+          "id": "16:915583868128553717",
+          "name": "timeoutSeconds",
+          "type": 6
+        },
+        {
+          "id": "17:6304588517813859241",
+          "name": "retryCount",
+          "type": 5
+        },
+        {
+          "id": "18:9212251637717438764",
+          "name": "maxRetries",
+          "type": 5
+        },
+        {
+          "id": "19:7553621085863163009",
+          "name": "tagsJson",
+          "type": 9
+        },
+        {
+          "id": "20:6021098588426813268",
+          "name": "argsJson",
+          "type": 9
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "1:4049591075845885667",
+  "lastIndexId": "0:0",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}

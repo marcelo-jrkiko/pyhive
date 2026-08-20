@@ -1,8 +1,6 @@
 package krs.pyhive.models
 
 import android.os.Parcelable
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
 import java.util.*
@@ -22,10 +20,8 @@ enum class TaskStatus {
 /**
  * Data class representing a Python Task
  */
-@Entity(tableName = "tasks")
 @Parcelize
 data class PythonTask(
-    @PrimaryKey
     val taskId: String = UUID.randomUUID().toString(),
     
     @SerializedName("script_content")

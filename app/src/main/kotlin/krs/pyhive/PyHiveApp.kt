@@ -5,8 +5,11 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import io.objectbox.BoxStore
 import krs.pyhive.api.PythonTaskRunnerService
 import krs.pyhive.auth.AuthenticationManager
+import krs.pyhive.data.MyObjectBox
+import krs.pyhive.data.TaskRepository
 import krs.pyhive.preferences.AppPreferences
 import krs.pyhive.python.PythonRuntimeManager
 import krs.pyhive.sandbox.SandboxManager
@@ -21,6 +24,8 @@ class PyHiveApp : Application() {
 
     companion object {
         private var instance: PyHiveApp? = null
+        private var boxStore: BoxStore? = null
+        private var taskRepository: TaskRepository? = null
         private var apiService: PythonTaskRunnerService? = null
         private var taskScheduler: TaskScheduler? = null
         private var authManager: AuthenticationManager? = null
@@ -29,6 +34,8 @@ class PyHiveApp : Application() {
         private var appPreferences: AppPreferences? = null
 
         fun getInstance(): PyHiveApp = instance!!
+        fun getBoxStore(): BoxStore = boxStore!!
+        fun getTaskRepository(): TaskRepository = taskRepository!!
         fun getApiService(): PythonTaskRunnerService = apiService!!
         fun getTaskScheduler(): TaskScheduler = taskScheduler!!
         fun getAuthManager(): AuthenticationManager = authManager!!
@@ -75,11 +82,18 @@ class PyHiveApp : Application() {
         sandboxManager = SandboxManager(this)
         pythonRuntimeManager = PythonRuntimeManager(this, sandboxManager!!)
 
+        // Initialize ObjectBox and task repository
+        boxStore = MyObjectBox.builder()
+            .androidContext(this)
+            .build()
+        taskRepository = TaskRepository(boxStore!!)
+
         // Initialize task scheduler
         taskScheduler = TaskScheduler(
             this,
             pythonRuntimeManager!!,
-            sandboxManager!!
+            sandboxManager!!,
+            taskRepository!!
         )
 
         // Initialize API service
