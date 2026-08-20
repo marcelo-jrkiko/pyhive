@@ -105,6 +105,9 @@ class TaskScheduler(
 
                 taskRegistry[task.taskId] = failedTask
                 updateTaskStatus(task.taskId, TaskStatus.FAILED)
+            } finally {
+                // Always remove sandbox files once task execution finishes.
+                sandboxManager.deleteSandbox(task.taskId)
             }
         }
     }
