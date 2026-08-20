@@ -22,6 +22,8 @@ object ApiRoutes {
         data class DeleteTask(val taskId: String) : Match()
         object GetStats : Match()
         object HealthCheck : Match()
+        /** Preflight OPTIONS request for any API path. */
+        data class Options(val path: String) : Match()
     }
 
     fun match(method: String, rawPath: String): Match? {
@@ -71,6 +73,8 @@ object ApiRoutes {
                     null
                 }
             }
+
+            "OPTIONS" -> Match.Options(path)
 
             else -> null
         }

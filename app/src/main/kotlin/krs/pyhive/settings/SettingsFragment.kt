@@ -49,6 +49,9 @@ class SettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedP
             maxValue = AppPreferences.MAX_MAX_PAYLOAD_SIZE_MB,
             invalidMessageRes = R.string.pref_invalid_max_payload_size
         )
+        configureCorsTextPreference(AppPreferences.KEY_CORS_ALLOWED_ORIGINS)
+        configureCorsTextPreference(AppPreferences.KEY_CORS_ALLOWED_METHODS)
+        configureCorsTextPreference(AppPreferences.KEY_CORS_ALLOWED_HEADERS)
         refreshDynamicSummaries()
     }
 
@@ -87,6 +90,12 @@ class SettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedP
                     Toast.makeText(requireContext(), R.string.pref_restart_required, Toast.LENGTH_SHORT).show()
                 }
             }
+            AppPreferences.KEY_CORS_ENABLED,
+            AppPreferences.KEY_CORS_ALLOWED_ORIGINS,
+            AppPreferences.KEY_CORS_ALLOWED_METHODS,
+            AppPreferences.KEY_CORS_ALLOWED_HEADERS -> {
+                // CORS config is read on every request; no restart needed.
+            }
         }
     }
 
@@ -110,6 +119,19 @@ class SettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedP
             } else {
                 true
             }
+        }
+    }
+
+    /**
+     * Configures a free-text CORS preference so that it uses a plain keyboard and persists
+     * exactly what the user typed (no numeric validation).
+     */
+    private fun configureCorsTextPreference(key: String) {
+        val pref = findPreference<EditTextPreference>(key) ?: return
+        pref.setOnBindEditTextListener { editText ->
+            editText.inputType =
+                android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
         }
     }
 
@@ -175,6 +197,24 @@ class SettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedP
             sharedPreferences.getString(
                 AppPreferences.KEY_MAX_PAYLOAD_SIZE_MB,
                 AppPreferences.DEFAULT_MAX_PAYLOAD_SIZE_MB.toString()
+            )
+
+        findPreference<EditTextPreference>(AppPreferences.KEY_CORS_ALLOWED_ORIGINS)?.summary =
+            sharedPreferences.getString(
+                AppPreferences.KEY_CORS_ALLOWED_ORIGINS,
+                AppPreferences.DEFAULT_CORS_ALLOWED_ORIGINS
+            )
+
+        findPreference<EditTextPreference>(AppPreferences.KEY_CORS_ALLOWED_METHODS)?.summary =
+            sharedPreferences.getString(
+                AppPreferences.KEY_CORS_ALLOWED_METHODS,
+                AppPreferences.DEFAULT_CORS_ALLOWED_METHODS
+            )
+
+        findPreference<EditTextPreference>(AppPreferences.KEY_CORS_ALLOWED_HEADERS)?.summary =
+            sharedPreferences.getString(
+                AppPreferences.KEY_CORS_ALLOWED_HEADERS,
+                AppPreferences.DEFAULT_CORS_ALLOWED_HEADERS
             )
     }
 }

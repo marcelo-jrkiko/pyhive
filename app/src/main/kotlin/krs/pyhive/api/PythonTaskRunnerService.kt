@@ -126,6 +126,12 @@ class PythonTaskRunnerService(
                 }
             }
 
+            // Handle CORS preflight before authentication
+            if (method == "OPTIONS") {
+                sendCorsPreflightResponse(writer, headers)
+                return
+            }
+
             // Check authentication
             val authHeader = headers[AUTH_HEADER.lowercase()]
             if (!authManager.validateToken(authHeader)) {
@@ -185,6 +191,9 @@ class PythonTaskRunnerService(
             // GET /api/health - Health check
             is ApiRoutes.Match.HealthCheck -> handleHealthCheck(writer)
 
+            // OPTIONS - CORS preflight (handled before auth; this branch is a safety net)
+            is ApiRoutes.Match.Options -> sendCorsPreflightResponse(writer, headers)
+
             else -> sendErrorResponse(writer, 404, "Endpoint not found: $method $path")
         }
     }
@@ -241,13 +250,14 @@ class PythonTaskRunnerService(
     }
 
     /**
-     * Build HTTP response
+     * Build HTTP response, appending CORS headers when CORS is enabled.
      */
     private fun buildHttpResponse(statusCode: Int, contentType: String, body: String): String {
         val statusMessage = when (statusCode) {
             200 -> "OK"
             201 -> "Created"
             202 -> "Accepted"
+            204 -> "No Content"
             400 -> "Bad Request"
             401 -> "Unauthorized"
             404 -> "Not Found"
@@ -256,14 +266,55 @@ class PythonTaskRunnerService(
             else -> "Unknown"
         }
 
-        return """
-HTTP/1.1 $statusCode $statusMessage
-Content-Type: $contentType; charset=utf-8
-Content-Length: ${body.toByteArray(StandardCharsets.UTF_8).size}
-Connection: close
+        val corsHeaders = buildCorsHeaders()
 
-$body
-""".trimIndent()
+        return buildString {
+            append("HTTP/1.1 $statusCode $statusMessage\r\n")
+            append("Content-Type: $contentType; charset=utf-8\r\n")
+            append("Content-Length: ${body.toByteArray(StandardCharsets.UTF_8).size}\r\n")
+            append("Connection: close\r\n")
+            if (corsHeaders.isNotEmpty()) append(corsHeaders)
+            append("\r\n")
+            append(body)
+        }
+    }
+
+    /**
+     * Build CORS response headers string (each line ending with \r\n) when CORS is enabled,
+     * or an empty string when disabled.
+     */
+    private fun buildCorsHeaders(): String {
+        if (!appPreferences.corsEnabled()) return ""
+        return buildString {
+            append("Access-Control-Allow-Origin: ${appPreferences.corsAllowedOrigins()}\r\n")
+            append("Access-Control-Allow-Methods: ${appPreferences.corsAllowedMethods()}\r\n")
+            append("Access-Control-Allow-Headers: ${appPreferences.corsAllowedHeaders()}\r\n")
+        }
+    }
+
+    /**
+     * Respond to a CORS preflight OPTIONS request with 204 No Content.
+     * Does not require authentication.
+     */
+    private fun sendCorsPreflightResponse(writer: BufferedWriter, headers: Map<String, String>) {
+        val corsEnabled = appPreferences.corsEnabled()
+        val statusLine = "HTTP/1.1 204 No Content\r\n"
+        val response = buildString {
+            append(statusLine)
+            append("Content-Length: 0\r\n")
+            append("Connection: close\r\n")
+            if (corsEnabled) {
+                append("Access-Control-Allow-Origin: ${appPreferences.corsAllowedOrigins()}\r\n")
+                append("Access-Control-Allow-Methods: ${appPreferences.corsAllowedMethods()}\r\n")
+                // Prefer the requested headers from the preflight if available, otherwise use the configured value
+                val allowedHeaders = headers["access-control-request-headers"]
+                    ?: appPreferences.corsAllowedHeaders()
+                append("Access-Control-Allow-Headers: $allowedHeaders\r\n")
+            }
+            append("\r\n")
+        }
+        writer.write(response)
+        writer.flush()
     }
 
     /**

@@ -34,4 +34,13 @@
     <string name="pref_invalid_cleanup_days">Cleanup age must be between 1 and 30 days</string>
     <string name="pref_invalid_max_task_memory">Max task memory must be between 0 and 8192 MB</string>
     <string name="pref_invalid_max_payload_size">Max payload size must be between 1 and 1024 MB</string>
+    <string name="pref_category_cors">CORS</string>
+    <string name="pref_cors_enabled_title">Enable CORS</string>
+    <string name="pref_cors_enabled_summary">Add Cross-Origin Resource Sharing headers to API responses</string>
+    <string name="pref_cors_origins_title">Allowed origins</string>
+    <string name="pref_cors_origins_summary">Comma-separated list of origins, or * to allow all</string>
+    <string name="pref_cors_methods_title">Allowed methods</string>
+    <string name="pref_cors_methods_summary">Comma-separated HTTP methods (e.g. GET, POST, OPTIONS)</string>
+    <string name="pref_cors_headers_title">Allowed headers</string>
+    <string name="pref_cors_headers_summary">Comma-separated request headers (e.g. Authorization, Content-Type)</string>
 </resources>

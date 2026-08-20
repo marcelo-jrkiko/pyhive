@@ -103,6 +103,7 @@ class PyHiveApp : Application() {
             taskScheduler!!,
             pythonRuntimeManager!!,
             sandboxManager!!,
+            appPreferences!!,
             port = appPreferences!!.apiPort()
         )
 
@@ -154,6 +155,7 @@ class PyHiveApp : Application() {
             taskScheduler!!,
             pythonRuntimeManager!!,
             sandboxManager!!,
+            appPreferences!!,
             port = appPreferences!!.apiPort()
         )
 

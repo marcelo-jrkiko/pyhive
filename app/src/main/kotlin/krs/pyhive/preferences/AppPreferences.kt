@@ -15,6 +15,16 @@ class AppPreferences(context: Context) {
         const val KEY_MAX_TASK_MEMORY_MB = "pref_max_task_memory_mb"
         const val KEY_MAX_PAYLOAD_SIZE_MB = "http_max_payload_size_mb"
 
+        const val KEY_CORS_ENABLED = "pref_cors_enabled"
+        const val KEY_CORS_ALLOWED_ORIGINS = "pref_cors_allowed_origins"
+        const val KEY_CORS_ALLOWED_METHODS = "pref_cors_allowed_methods"
+        const val KEY_CORS_ALLOWED_HEADERS = "pref_cors_allowed_headers"
+
+        const val DEFAULT_CORS_ENABLED = true
+        const val DEFAULT_CORS_ALLOWED_ORIGINS = "*"
+        const val DEFAULT_CORS_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS"
+        const val DEFAULT_CORS_ALLOWED_HEADERS = "Authorization, Content-Type"
+
         const val DEFAULT_PORT = 8080
         const val DEFAULT_TIMEOUT_SECONDS = 300
         const val DEFAULT_CLEANUP_DAYS = 7
@@ -75,6 +85,32 @@ class AppPreferences(context: Context) {
     /** Maximum HTTP request body (in bytes) the API server will accept. */
     fun maxPayloadSizeBytes(): Long =
         maxPayloadSizeMb().toLong() * 1024L * 1024L
+
+    /** Whether CORS support is enabled. */
+    fun corsEnabled(): Boolean =
+        preferences.getBoolean(KEY_CORS_ENABLED, DEFAULT_CORS_ENABLED)
+
+    /**
+     * Comma-separated list of allowed origins (e.g. "https://example.com, http://localhost:3000").
+     * Use "*" to allow all origins.
+     */
+    fun corsAllowedOrigins(): String =
+        preferences.getString(KEY_CORS_ALLOWED_ORIGINS, DEFAULT_CORS_ALLOWED_ORIGINS)
+            ?.trim().orEmpty().ifEmpty { DEFAULT_CORS_ALLOWED_ORIGINS }
+
+    /**
+     * Comma-separated list of allowed HTTP methods (e.g. "GET, POST, OPTIONS").
+     */
+    fun corsAllowedMethods(): String =
+        preferences.getString(KEY_CORS_ALLOWED_METHODS, DEFAULT_CORS_ALLOWED_METHODS)
+            ?.trim().orEmpty().ifEmpty { DEFAULT_CORS_ALLOWED_METHODS }
+
+    /**
+     * Comma-separated list of allowed request headers (e.g. "Authorization, Content-Type").
+     */
+    fun corsAllowedHeaders(): String =
+        preferences.getString(KEY_CORS_ALLOWED_HEADERS, DEFAULT_CORS_ALLOWED_HEADERS)
+            ?.trim().orEmpty().ifEmpty { DEFAULT_CORS_ALLOWED_HEADERS }
 
     private fun sanitizePort(raw: String?): Int {
         val parsed = raw?.toIntOrNull() ?: DEFAULT_PORT

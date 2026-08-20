@@ -57,6 +57,40 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/pref_category_cors">
+
+        <SwitchPreferenceCompat
+            app:key="pref_cors_enabled"
+            app:title="@string/pref_cors_enabled_title"
+            app:summary="@string/pref_cors_enabled_summary"
+            app:defaultValue="false" />
+
+        <EditTextPreference
+            app:key="pref_cors_allowed_origins"
+            app:title="@string/pref_cors_origins_title"
+            app:summary="@string/pref_cors_origins_summary"
+            app:defaultValue="*"
+            app:dependency="pref_cors_enabled"
+            app:useSimpleSummaryProvider="false" />
+
+        <EditTextPreference
+            app:key="pref_cors_allowed_methods"
+            app:title="@string/pref_cors_methods_title"
+            app:summary="@string/pref_cors_methods_summary"
+            app:defaultValue="GET, POST, PUT, DELETE, OPTIONS"
+            app:dependency="pref_cors_enabled"
+            app:useSimpleSummaryProvider="false" />
+
+        <EditTextPreference
+            app:key="pref_cors_allowed_headers"
+            app:title="@string/pref_cors_headers_title"
+            app:summary="@string/pref_cors_headers_summary"
+            app:defaultValue="Authorization, Content-Type"
+            app:dependency="pref_cors_enabled"
+            app:useSimpleSummaryProvider="false" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="@string/pref_category_ui">
 
         <SwitchPreferenceCompat
