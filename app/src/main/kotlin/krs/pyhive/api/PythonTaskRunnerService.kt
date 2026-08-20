@@ -16,6 +16,8 @@ import java.io.OutputStreamWriter
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.charset.StandardCharsets
+import krs.pyhive.api.RuntimeApiController
+import krs.pyhive.api.ApiController
 
 /**
  * REST API service for Python Task Runner
@@ -40,7 +42,8 @@ class PythonTaskRunnerService(
     private var isRunning = false
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val controllers: List<ApiController> = listOf(
-        TaskApiController(context, taskScheduler)
+        TaskApiController(context, taskScheduler),
+        RuntimeApiController(pythonRuntimeManager)
     )
 
     fun isRunning(): Boolean = isRunning

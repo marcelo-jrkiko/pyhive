@@ -29,9 +29,11 @@ class PythonRuntimeManager(
     private val gson = Gson()
     private val executionLock = ReentrantLock()
     private val workerScriptSource by lazy { readAssetText(WORKER_SCRIPT_ASSET) }
+    private val listPackagesScriptSource by lazy { readAssetText(LIST_PACKAGES_SCRIPT_ASSET) }
 
     companion object {
         private const val WORKER_SCRIPT_ASSET = "python/task_worker.py"
+        private const val LIST_PACKAGES_SCRIPT_ASSET = "python/list_installed_packages.py"
 
         /** How often the memory watchdog samples the JVM heap (ms). */
         private const val MEMORY_SAMPLE_INTERVAL_MS = 100L
@@ -55,6 +57,27 @@ class PythonRuntimeManager(
         } catch (e: Exception) {
             Timber.e("Failed to initialize Python runtime: $e")
             throw RuntimeException("Python initialization failed", e)
+        }
+    }
+
+    fun getInstalledPackages(): List<Map<String, String>> {
+        return try {
+            initializePython()
+            val python = Python.getInstance()
+
+            val workerGlobals = python.builtins.callAttr("dict")
+            workerGlobals.callAttr("__setitem__", "__name__", "__chaquopy_code__")
+            workerGlobals.callAttr("__setitem__", "__builtins__", python.builtins)
+
+            val resultJson = python.builtins.callAttr("exec", listPackagesScriptSource, workerGlobals, workerGlobals)
+            val getInstalledPackages = workerGlobals.callAttr("__getitem__", "get_installed_packages")
+            val packagesJson = getInstalledPackages.call()
+
+            @Suppress("UNCHECKED_CAST")
+            return gson.fromJson(packagesJson.toString(), Array<Any>::class.java).map { it as Map<String, String> }.toList()
+        } catch (e: Exception) {
+            Timber.e("Error retrieving installed packages: $e")
+            emptyList()
         }
     }
 

@@ -62,18 +62,6 @@ class MainActivity : AppCompatActivity() {
                 Failed: ${stats.failedTasks}
                 Cancelled: ${stats.cancelledTasks}
                 Scheduled: ${stats.scheduledTasks}
-                
-                === Endpoints ===
-                POST   /api/tasks
-                GET    /api/tasks
-                GET    /api/tasks/{taskId}
-                PUT    /api/tasks/{taskId}/cancel
-                PUT    /api/tasks/{taskId}/reschedule
-                DELETE /api/tasks/{taskId}
-                GET    /api/stats
-                GET    /api/health
-                
-                Use Bearer Token: Authorization: Bearer <token>
             """.trimIndent()
 
             val statusTextView: TextView? = findViewById(R.id.status_text)

@@ -10,6 +10,8 @@ object ApiRoutes {
     private const val TASK_ID_SEG = "[\\w-]+"
 
     sealed class Match {
+
+        // Tasks
         object SubmitTask : Match()
         data class GetTaskStatus(val taskId: String) : Match()
         data class ListTasks(val query: String) : Match()
@@ -18,6 +20,10 @@ object ApiRoutes {
         data class DeleteTask(val taskId: String) : Match()
         object GetStats : Match()
         object HealthCheck : Match()
+
+        // Runtime
+        object GetInstalledPackages : Match()
+
         /** Preflight OPTIONS request for any API path. */
         data class Options(val path: String) : Match()
     }
@@ -42,6 +48,8 @@ object ApiRoutes {
         RouteDefinition("PUT",    Regex("^$API_PREFIX/tasks/($TASK_ID_SEG)/cancel$"))       { r, _     -> Match.CancelTask(r.groupValues[1]) },
         RouteDefinition("PUT",    Regex("^$API_PREFIX/tasks/($TASK_ID_SEG)/reschedule$"))   { r, _     -> Match.RescheduleTask(r.groupValues[1]) },
         RouteDefinition("DELETE", Regex("^$API_PREFIX/tasks/($TASK_ID_SEG)$"))              { r, _     -> Match.DeleteTask(r.groupValues[1]) },
+
+        RouteDefinition("GET",    Regex("^$API_PREFIX/runtime/packages$"))                   { _, _     -> Match.GetInstalledPackages }
     )
 
     fun match(method: String, rawPath: String): Match? {
