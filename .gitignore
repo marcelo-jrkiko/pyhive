@@ -93,3 +93,4 @@ docs/build/
 # Python sandbox directories (for development)
 python_sandboxes/
 *.db
+app/release
