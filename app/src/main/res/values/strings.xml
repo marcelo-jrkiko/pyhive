@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PyHive</string>
+    <string name="app_version">1.0.0</string>
+    <string name="open_settings">Preferences</string>
+    <string name="settings_title">App Preferences</string>
+    <string name="pref_category_server">Server</string>
+    <string name="pref_auto_start_server_title">Auto-start API server</string>
+    <string name="pref_auto_start_server_summary">Start HTTP API automatically when app launches</string>
+    <string name="pref_api_port_title">API server port</string>
+    <string name="pref_api_port_summary">TCP port used by local HTTP API</string>
+    <string name="pref_custom_token_title">Custom API token</string>
+    <string name="pref_custom_token_summary">Set a custom Bearer token for API authentication</string>
+    <string name="pref_custom_token_saved">Custom API token saved</string>
+    <string name="pref_custom_token_invalid">Token cannot be blank</string>
+    <string name="pref_custom_token_masked">Current token: %1$s</string>
+    <string name="pref_custom_token_not_set">Current token: not set</string>
+    <string name="pref_category_execution">Execution</string>
+    <string name="pref_default_timeout_title">Default task timeout (seconds)</string>
+    <string name="pref_default_timeout_summary">Used when request timeout is missing or invalid</string>
+    <string name="pref_cleanup_days_title">Cleanup age (days)</string>
+    <string name="pref_cleanup_days_summary">Delete old tasks and sandboxes after this age</string>
+    <string name="pref_category_ui">Display</string>
+    <string name="pref_show_full_token_title">Show full API token</string>
+    <string name="pref_show_full_token_summary">Disable to mask token in the main screen</string>
+    <string name="pref_restart_applied">Server restarted with new port</string>
+    <string name="pref_restart_required">Restart app to apply this setting</string>
+    <string name="pref_invalid_port">Port must be between 1024 and 65535</string>
+    <string name="pref_invalid_timeout">Timeout must be between 5 and 3600 seconds</string>
+    <string name="pref_invalid_cleanup_days">Cleanup age must be between 1 and 30 days</string>
+</resources>
