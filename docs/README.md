@@ -422,7 +422,12 @@ done
 
 ## License
 
-MIT — see the `LICENSE` file.
+**GNU Affero General Public License v3.0 (AGPLv3)** — see the [`LICENSE`](../LICENSE) file.
+
+> **Note for network use:** Because this project runs as a network service
+> (an HTTP server), any modified version you deploy publicly must make its
+> complete corresponding source code available to users, per the AGPLv3's
+> remote-network-interaction clause (Section 13).
 
 ## Support
 

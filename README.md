@@ -4,6 +4,8 @@
 
 KRS PyHive embeds a **Python 3.13** runtime (via [Chaquopy](https://chaquo.com/py/)) inside an Android app and exposes it through a lightweight HTTP server. Submit Python scripts as tasks, schedule them, and run them in **isolated per-task sandboxes** — all protected by Bearer token authentication.
 
+![Demo](PYHIVE.png)
+
 ## 🚀 At a Glance
 
 ```
@@ -198,6 +200,14 @@ Run the suites from the project root:
 2. Implement per Task Resource Monitoring
 3. Implement Task Queue 
 4. Implement support to Script Project with multiple files
+
+## 📜 License
+
+**GNU Affero General Public License v3.0 (AGPLv3)** — see the [`LICENSE`](LICENSE) file.
+
+> Because KRS PyHive runs as a network server, AGPLv3 requires that any modified
+> deployment you expose to users also make its corresponding source code available
+> (remote-network-interaction clause).
 
 ## 🆘 Support
 
