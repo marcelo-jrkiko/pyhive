@@ -4,6 +4,7 @@ import android.content.Context
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.google.gson.Gson
+import krs.pyhive.preferences.AppPreferences
 import krs.pyhive.sandbox.SandboxManager
 import krs.pyhive.utils.AssetUtils
 import timber.log.Timber
@@ -12,6 +13,8 @@ import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -20,7 +23,8 @@ import kotlin.concurrent.withLock
  */
 class PythonRuntimeManager(
     private val context: Context,
-    private val sandboxManager: SandboxManager
+    private val sandboxManager: SandboxManager,
+    private val appPreferences: AppPreferences
 ) {
     private val gson = Gson()
     private val executionLock = ReentrantLock()
@@ -28,6 +32,15 @@ class PythonRuntimeManager(
 
     companion object {
         private const val WORKER_SCRIPT_ASSET = "python/task_worker.py"
+
+        /** How often the memory watchdog samples the JVM heap (ms). */
+        private const val MEMORY_SAMPLE_INTERVAL_MS = 100L
+
+        /**
+         * Consecutive over-limit samples required before the worker is killed,
+         * giving the GC a chance to reclaim transient heap spikes.
+         */
+        private const val MEMORY_OVERRUN_SAMPLES = 5
     }
 
     /**
@@ -46,7 +59,10 @@ class PythonRuntimeManager(
     }
 
     /**
-     * Execute a Python script with sandbox restrictions
+     * Execute a Python script with sandbox restrictions.
+     *
+     * The maximum amount of JVM heap a task may use comes from
+     * [AppPreferences.maxTaskMemoryBytes()]; set `max task memory` to 0 in Settings to disable the watchdog.
      */
     fun executePythonScript(
         taskId: String,
@@ -117,6 +133,14 @@ class PythonRuntimeManager(
 
     /**
      * Execute task inside an isolated in-process worker task.
+     *
+     * The worker runs on its own thread and is bounded by:
+     *  - [timeoutSeconds]: hard wall-clock limit (existing behavior);
+     *  - memory limit: a watchdog samples the JVM heap (limit read from
+     *    [AppPreferences.maxTaskMemoryBytes()]) and interrupts the worker when
+     *    usage stays above the limit across consecutive samples. Note this
+     *    bounds JVM-managed allocations only; Chaquopy's native (C/Python)
+     *    allocations are not visible to [Runtime].
      */
     private fun executeWorkerProcess(
         taskId: String,
@@ -126,9 +150,11 @@ class PythonRuntimeManager(
     ): WorkerProcessResult {
         return executionLock.withLock {
             val paramsJson = gson.toJson(params)
+            val maxMemoryBytes = appPreferences.maxTaskMemoryBytes()
 
             var workerResultJson = ""
-            var workerError: String? = null
+            val workerError = AtomicReference<String?>()
+            val memoryLimitError = AtomicReference<String?>()
 
             val executionThread = Thread(
                 {
@@ -144,23 +170,61 @@ class PythonRuntimeManager(
                         val resultObj = runTask.call(paramsJson)
                         workerResultJson = resultObj.toString()
                     } catch (e: Exception) {
-                        workerError = e.message ?: e.toString()
+                        workerError.set(e.message ?: e.toString())
                     }
                 },
                 "py-worker-$taskId"
             )
 
+            // Memory watchdog: samples the process JVM heap and interrupts the
+            // worker once usage exceeds the limit across consecutive samples,
+            // so transient spikes that the GC can reclaim don't kill the task.
+            val stopWatchdog = AtomicBoolean(false)
+            val watchdog = if (maxMemoryBytes > 0) {
+                Thread(
+                    {
+                        var overrunSamples = 0
+                        while (!stopWatchdog.get()) {
+                            if (!executionThread.isAlive) break
+
+                            val usedBytes = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
+                            if (usedBytes > maxMemoryBytes) {
+                                overrunSamples++
+                                if (overrunSamples >= MEMORY_OVERRUN_SAMPLES) {
+                                    val message = "${formatBytes(usedBytes)} exceeded the memory limit of ${formatBytes(maxMemoryBytes)}"
+                                    memoryLimitError.set(message)
+                                    Timber.w("Stopping task $taskId: $message")
+                                    executionThread.interrupt()
+                                    break
+                                }
+                            } else {
+                                overrunSamples = 0
+                            }
+                            Thread.sleep(MEMORY_SAMPLE_INTERVAL_MS)
+                        }
+                    },
+                    "mem-watchdog-$taskId"
+                ).also {
+                    it.isDaemon = true
+                    it.start()
+                }
+            } else null
+
             executionThread.start()
             executionThread.join(timeoutSeconds * 1000)
 
-            if (executionThread.isAlive) {
+            val workerStillAlive = executionThread.isAlive
+            stopWatchdog.set(true)
+            watchdog?.join(MEMORY_SAMPLE_INTERVAL_MS * 2)
+
+            memoryLimitError.get()?.let { throw RuntimeException(it) }
+
+            if (workerStillAlive) {
                 executionThread.interrupt()
                 throw TimeoutException("Script execution exceeded $timeoutSeconds seconds")
             }
 
-            if (!workerError.isNullOrBlank()) {
-                throw RuntimeException("Worker task failed: $workerError")
-            }
+            workerError.get()?.let { throw RuntimeException("Worker task failed: $it") }
 
             if (workerResultJson.isBlank()) {
                 throw RuntimeException("Worker task returned an empty result")
@@ -180,6 +244,14 @@ class PythonRuntimeManager(
 
     private fun readAssetText(assetPath: String): String {
         return AssetUtils.readAssetText(context, assetPath)
+    }
+
+    private fun formatBytes(bytes: Long): String {
+        return if (bytes >= 1024 * 1024) {
+            String.format("%.1f MB", bytes / (1024.0 * 1024.0))
+        } else {
+            "$bytes bytes"
+        }
     }
 
     /**

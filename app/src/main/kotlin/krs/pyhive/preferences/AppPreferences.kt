@@ -12,10 +12,12 @@ class AppPreferences(context: Context) {
         const val KEY_CLEANUP_AGE_DAYS = "pref_cleanup_age_days"
         const val KEY_SHOW_FULL_TOKEN = "pref_show_full_token"
         const val KEY_CUSTOM_API_TOKEN = "pref_custom_api_token"
+        const val KEY_MAX_TASK_MEMORY_MB = "pref_max_task_memory_mb"
 
         const val DEFAULT_PORT = 8080
         const val DEFAULT_TIMEOUT_SECONDS = 300
         const val DEFAULT_CLEANUP_DAYS = 7
+        const val DEFAULT_MAX_TASK_MEMORY_MB = 1024
 
         const val MIN_PORT = 1024
         const val MAX_PORT = 65535
@@ -46,6 +48,14 @@ class AppPreferences(context: Context) {
         return cleanupDays.toLong() * 24L * 60L * 60L * 1000L
     }
 
+    /** Maximum JVM heap (in MB) a task may use; 0 disables the watchdog. */
+    fun maxTaskMemoryMb(): Int =
+        sanitizeMemoryLimitMb(preferences.getString(KEY_MAX_TASK_MEMORY_MB, DEFAULT_MAX_TASK_MEMORY_MB.toString()))
+
+    /** Maximum JVM heap (in bytes) a task may use; 0 disables the watchdog. */
+    fun maxTaskMemoryBytes(): Long =
+        maxTaskMemoryMb().toLong() * 1024L * 1024L
+
     private fun sanitizePort(raw: String?): Int {
         val parsed = raw?.toIntOrNull() ?: DEFAULT_PORT
         return parsed.coerceIn(MIN_PORT, MAX_PORT)
@@ -59,5 +69,10 @@ class AppPreferences(context: Context) {
     private fun sanitizeCleanupDays(raw: String?): Int {
         val parsed = raw?.toIntOrNull() ?: DEFAULT_CLEANUP_DAYS
         return parsed.coerceIn(MIN_CLEANUP_DAYS, MAX_CLEANUP_DAYS)
+    }
+
+    private fun sanitizeMemoryLimitMb(raw: String?): Int {
+        val parsed = raw?.toIntOrNull() ?: DEFAULT_MAX_TASK_MEMORY_MB
+        return if (parsed <= 0) 0 else parsed
     }
 }

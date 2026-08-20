@@ -80,7 +80,7 @@ class PyHiveApp : Application() {
         // Initialize managers
         authManager = AuthenticationManager(sharedPreferences)
         sandboxManager = SandboxManager(this)
-        pythonRuntimeManager = PythonRuntimeManager(this, sandboxManager!!)
+        pythonRuntimeManager = PythonRuntimeManager(this, sandboxManager!!, appPreferences!!)
 
         // Initialize ObjectBox and task repository
         boxStore = MyObjectBox.builder()
