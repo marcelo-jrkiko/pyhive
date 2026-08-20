@@ -6,12 +6,8 @@ package krs.pyhive.api
 object ApiRoutes {
     private const val API_PREFIX = "/api"
 
-    private val tasksRoute = Regex("^$API_PREFIX/tasks$")
-    private val taskByIdRoute = Regex("^$API_PREFIX/tasks/(\\w+)$")
-    private val cancelTaskRoute = Regex("^$API_PREFIX/tasks/(\\w+)/cancel$")
-    private val rescheduleTaskRoute = Regex("^$API_PREFIX/tasks/(\\w+)/reschedule$")
-    private val statsRoute = Regex("^$API_PREFIX/stats$")
-    private val healthRoute = Regex("^$API_PREFIX/health$")
+    // Task ID segment: word chars plus hyphens to support UUIDs (e.g. 4b6dab16-2be5-4ec7-9c94-5ddbb23f3827)
+    private const val TASK_ID_SEG = "[\\w-]+"
 
     sealed class Match {
         object SubmitTask : Match()
@@ -26,57 +22,39 @@ object ApiRoutes {
         data class Options(val path: String) : Match()
     }
 
+    /**
+     * Describes a single route: the HTTP method it handles, the regex it matches against the
+     * path, and a factory that turns a [MatchResult] plus the raw query string into a [Match].
+     */
+    data class RouteDefinition(
+        val method: String,
+        val pathRegex: Regex,
+        val handler: (result: MatchResult, query: String) -> Match
+    )
+
+    /** All application routes, evaluated in order. OPTIONS is handled separately (see [match]). */
+    val routes: List<RouteDefinition> = listOf(
+        RouteDefinition("POST",   Regex("^$API_PREFIX/tasks$"))                              { _, _     -> Match.SubmitTask },
+        RouteDefinition("GET",    Regex("^$API_PREFIX/tasks$"))                              { _, query -> Match.ListTasks(query) },
+        RouteDefinition("GET",    Regex("^$API_PREFIX/tasks/($TASK_ID_SEG)$"))              { r, _     -> Match.GetTaskStatus(r.groupValues[1]) },
+        RouteDefinition("GET",    Regex("^$API_PREFIX/stats$"))                              { _, _     -> Match.GetStats },
+        RouteDefinition("GET",    Regex("^$API_PREFIX/health$"))                             { _, _     -> Match.HealthCheck },
+        RouteDefinition("PUT",    Regex("^$API_PREFIX/tasks/($TASK_ID_SEG)/cancel$"))       { r, _     -> Match.CancelTask(r.groupValues[1]) },
+        RouteDefinition("PUT",    Regex("^$API_PREFIX/tasks/($TASK_ID_SEG)/reschedule$"))   { r, _     -> Match.RescheduleTask(r.groupValues[1]) },
+        RouteDefinition("DELETE", Regex("^$API_PREFIX/tasks/($TASK_ID_SEG)$"))              { r, _     -> Match.DeleteTask(r.groupValues[1]) },
+    )
+
     fun match(method: String, rawPath: String): Match? {
-        val path = rawPath.substringBefore("?")
+        if (method == "OPTIONS") return Match.Options(rawPath.substringBefore("?"))
+
+        val path  = rawPath.substringBefore("?")
         val query = rawPath.substringAfter("?", "")
 
-        return when (method) {
-            "POST" -> {
-                if (tasksRoute.matches(path)) Match.SubmitTask else null
-            }
-
-            "GET" -> {
-                when {
-                    tasksRoute.matches(path) -> Match.ListTasks(query)
-                    taskByIdRoute.matchEntire(path) != null -> {
-                        val taskId = taskByIdRoute.matchEntire(path)!!.groupValues[1]
-                        Match.GetTaskStatus(taskId)
-                    }
-
-                    statsRoute.matches(path) -> Match.GetStats
-                    healthRoute.matches(path) -> Match.HealthCheck
-                    else -> null
-                }
-            }
-
-            "PUT" -> {
-                when {
-                    cancelTaskRoute.matchEntire(path) != null -> {
-                        val taskId = cancelTaskRoute.matchEntire(path)!!.groupValues[1]
-                        Match.CancelTask(taskId)
-                    }
-
-                    rescheduleTaskRoute.matchEntire(path) != null -> {
-                        val taskId = rescheduleTaskRoute.matchEntire(path)!!.groupValues[1]
-                        Match.RescheduleTask(taskId)
-                    }
-
-                    else -> null
-                }
-            }
-
-            "DELETE" -> {
-                if (taskByIdRoute.matchEntire(path) != null) {
-                    val taskId = taskByIdRoute.matchEntire(path)!!.groupValues[1]
-                    Match.DeleteTask(taskId)
-                } else {
-                    null
-                }
-            }
-
-            "OPTIONS" -> Match.Options(path)
-
-            else -> null
+        for (route in routes) {
+            if (route.method != method) continue
+            val result = route.pathRegex.matchEntire(path) ?: continue
+            return route.handler(result, query)
         }
+        return null
     }
 }
