@@ -37,12 +37,6 @@
             android:label="@string/settings_title"
             android:parentActivityName=".MainActivity" />
 
-        <!-- REST API Service -->
-        <service
-            android:name="krs.pyhive.api.PythonTaskRunnerService"
-            android:exported="false"
-            android:foregroundServiceType="shortService" />
-
-    </application>
+        </application>
 
 </manifest>
