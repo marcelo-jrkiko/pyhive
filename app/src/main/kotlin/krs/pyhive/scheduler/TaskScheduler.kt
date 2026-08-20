@@ -4,6 +4,7 @@ import android.content.Context
 import krs.pyhive.data.TaskRepository
 import krs.pyhive.models.PythonTask
 import krs.pyhive.models.TaskStatus
+import krs.pyhive.models.TaskStatistics
 import krs.pyhive.python.PythonRuntimeManager
 import krs.pyhive.sandbox.SandboxManager
 import timber.log.Timber
@@ -281,17 +282,3 @@ class TaskScheduler(
 interface TaskStatusListener {
     fun onTaskStatusChanged(taskId: String, status: TaskStatus, task: PythonTask)
 }
-
-/**
- * Statistics about tasks
- */
-data class TaskStatistics(
-    val totalTasks: Int,
-    val pendingTasks: Int,
-    val runningTasks: Int,
-    val completedTasks: Int,
-    val failedTasks: Int,
-    val cancelledTasks: Int,
-    val scheduledTasks: Int,
-    val averageExecutionTimeMs: Long
-)

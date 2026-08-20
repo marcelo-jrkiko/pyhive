@@ -1,67 +1,54 @@
 # Quick Start Guide
 
-Get up and running with Python Task Runner in 5 minutes!
+Get up and running with **KRS PyHive** in 5 minutes!
 
 ## Prerequisites
 
-- Android device or emulator (API 26+)
-- Android Studio installed
-- USB cable (for device testing)
-- Network connectivity
+- A physical Android device **or** an emulator (API 30+).
+- For physical devices: a USB cable, with `adb` available.
+- Network connectivity between the device/emulator and your client.
 
 ## Installation
 
-### Step 1: Build and Install the App
+### Step 1 — Build and install the app
 
 ```bash
-# Navigate to project directory
 cd /opt/data/Marcelo/Projetos/krs.pyhive
-
-# Build and install on device
-./gradlew installDebug
+./gradlew :app:installDebug
 ```
 
-Expected output:
-```
-> Task :app:installDebugApk
-Installed successfully
-```
+This compiles the debug APK and installs it on the connected device (and launches the activity). For an automated build + install + debug-prep flow, use the helper script:
 
-### Step 2: Launch the App
-
-- Open the app from your device's app drawer, or
-- Run: `./gradlew installDebug` which will auto-launch
-
-### Step 3: Get Your API Token
-
-When the app launches, you'll see the main screen with server information including your API token.
-
-```
-=== Python Task Runner API ===
-
-Status: Running
-Server Port: 8080
-
-API Token: abc123def456ghi...
-Python Initialized: true
+```bash
+bash scripts/deploy_and_prepare_debug.sh
 ```
 
-Save this token. You'll need it for API requests.
+### Step 2 — Launch the app
+
+- Open **PyHive** from the app drawer, or
+- `./gradlew :app:installDebug` auto-launches the activity.
+
+The main screen shows the server status, port, and your API token (masked).
+
+### Step 3 — Get your API token
+
+The token is generated automatically on first run. On the main screen it appears masked; open **Settings** and enable **Show Full Token** to reveal the complete value, then copy it.
+
+> You'll need this token for every API request.
 
 ## Your First API Call
 
-### Option 1: Using cURL
+Set the token and hit the health endpoint:
 
 ```bash
-# Set your token
 TOKEN="YOUR_TOKEN_HERE"
 
-# Test the health endpoint
 curl -H "Authorization: Bearer $TOKEN" \
   http://localhost:8080/api/health
 ```
 
-Expected response:
+**Expected response (`200`):**
+
 ```json
 {
   "status": "healthy",
@@ -70,7 +57,9 @@ Expected response:
 }
 ```
 
-### Option 2: Using Python
+> **Emulator note:** `localhost` works only when the server runs on the host. On the Android emulator, use the emulator's IP (e.g. `http://10.0.2.2:8080/api/health`).
+
+Using Python instead:
 
 ```python
 import requests
@@ -89,7 +78,8 @@ print(response.json())
 
 ### Simple Print Task
 
-**Using cURL (multipart form):**
+Using cURL (**multipart/form-data** — note the `params` JSON and `script` text parts):
+
 ```bash
 curl -X POST \
   -H "Authorization: Bearer $TOKEN" \
@@ -98,7 +88,8 @@ curl -X POST \
   http://localhost:8080/api/tasks
 ```
 
-**Response:**
+**Response (`202`):**
+
 ```json
 {
   "task_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -107,6 +98,8 @@ curl -X POST \
   "created_at": 1692345600000
 }
 ```
+
+> Note the JSON wire format is **snake_case** (`task_id`, `created_at`, …).
 
 ### Check Task Status
 
@@ -118,6 +111,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```
 
 **Response (after execution):**
+
 ```json
 {
   "task_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -147,17 +141,24 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ### Submit a File Writing Task
 
+The script runs inside its sandbox, so relative writes are allowed:
+
 ```bash
 curl -X POST \
   -H "Authorization: Bearer $TOKEN" \
-  -F "script=with open(\"output.txt\", \"w\") as f: f.write(\"Test output\")\nprint(\"File created\")" \
+  -F 'script=
+with open("output.txt", "w") as f:
+    f.write("Test output")
+print("File created")
+' \
   http://localhost:8080/api/tasks
 ```
 
 ### Schedule a Task
 
+`params.scheduled_time` is a **millisecond** epoch; schedule 2 minutes from now:
+
 ```bash
-# Schedule for 2 minutes from now
 SCHEDULED=$(( $(date +%s) * 1000 + 2 * 60 * 1000 ))
 
 curl -X POST \

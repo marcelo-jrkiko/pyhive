@@ -1,6 +1,7 @@
 package krs.pyhive.utils
 
 import java.io.File
+import android.content.Context
 
 /**
  * Utility functions for file operations
@@ -87,6 +88,13 @@ object StringUtils {
             else -> String.format("%d s", seconds)
         }
     }
+
+
+    fun escapePythonString(value: String): String {
+        return value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+    }
 }
 
 /**
@@ -101,5 +109,12 @@ object JsonUtils {
         val gson = com.google.gson.GsonBuilder().setPrettyPrinting().create()
         val jsonObject = com.google.gson.JsonParser.parseString(json)
         return gson.toJson(jsonObject)
+    }
+}
+
+
+object AssetUtils {
+    fun readAssetText(ctx: Context, assetPath: String): String {
+        return ctx.assets.open(assetPath).bufferedReader().use { it.readText() }
     }
 }

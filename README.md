@@ -1,375 +1,212 @@
-# Python Task Runner - Android Application
+# KRS PyHive — Python Task Runner for Android
 
-A sophisticated Android application that transforms your device into a Python execution server. This app embeds a Python 3.11 runtime and provides a comprehensive REST API for executing, scheduling, and managing Python scripts with secure sandboxing and task isolation.
+> Transform your Android device into a secure, sandboxed **Python execution server** with a full REST API.
 
-## 🚀 Quick Overview
+KRS PyHive embeds a **Python 3.13** runtime (via [Chaquopy](https://chaquo.com/py/)) inside an Android app and exposes it through a lightweight HTTP server. Submit Python scripts as tasks, schedule them, and run them in **isolated per-task sandboxes** — all protected by Bearer token authentication.
+
+## 🚀 At a Glance
 
 ```
-Your Device
-    ↓
-[Python Task Runner App]
-    ├─ Python 3.11 Runtime (Chaquopy)
-    ├─ REST API Server (port 8080)
-    ├─ Task Scheduler
-    ├─ File Sandboxing
-    └─ Bearer Token Authentication
-    ↓
-REST API Clients (curl, Python, Node.js, etc.)
+ Your Android device
+        │        ## Performance Tips
+        
+        1. **Parallel Submission**: Submit multiple tasks at once
+        ▼
+   KRS PyHive app
+        ├─ Python 3.13 runtime (Chaquopy)
+        ├─ REST API server (port 8080 default)
+        ├─ Task scheduler (up to 4 concurrent)
+        ├─ Per-task file sandboxing
+        ├─ ObjectBox task persistence
+        └─ Bearer token authentication
+        │
+        ▼
+ REST clients (curl, Python, Node.js…)
 ```
 
 ## ✨ Key Features
 
-- **🐍 Embedded Python**: Full Python 3.11 runtime via Chaquopy
-- **🔒 Secure Sandboxing**: File access restricted to per-task directories
-- **📡 REST API**: Complete HTTP API with Bearer Token auth
-- **⏱️ Task Scheduling**: Immediate and scheduled task execution
-- **🔄 Concurrent Execution**: Up to 4 concurrent tasks (configurable)
-- **📊 Monitoring**: Real-time task statistics and health checks
-- **🛡️ Isolation**: Complete task isolation with independent sandboxes
-- **📝 Comprehensive Logging**: Timber-based structured logging
-- **🎯 Modern Architecture**: Layered architecture with clear separation of concerns
+- **🐍 Embedded Python** — Full Python 3.13 runtime with `numpy`, `pandas`, and `requests` pre-installed.
+- **🔒 Secure Sandboxing** — Each task executes in its own isolated directory with runtime-enforced file access restrictions.
+- **📡 REST API** — Complete HTTP API (submit, query, cancel, reschedule, delete) with Bearer token auth.
+- **⏱️ Task Scheduling** — Immediate, scheduled, and reschedulable task execution.
+- **⚙️ Concurrency** — Up to 4 tasks run concurrently (configurable at build time).
+- **📊 Monitoring** — Real-time task statistics, health checks, and status tracking.
+- **🗄️ Persistence** — Task history stored in an embedded ObjectBox NoSQL database.
+- **🛡️ Isolation** — Full per-task isolation with independent sandboxes and resource quotas.
+- **📝 Logging** — Timber-based structured logging.
+- **🎯 Modern Architecture** — Layered design with clear separation of concerns (API / auth / scheduler / sandbox / Python).
 
-## 📋 Requirements
+## ⚠️ Requirements
 
-- **Android**: API Level 26+ (Android 8.0+)
-- **Storage**: 500MB+ available space
-- **RAM**: 1GB+ recommended
-- **Build Tool**: Android Studio 2022.1+
+| Requirement | Value |
+|---|---|
+| Android device/emulator | API Level **30+** (Android 11+) |
+| Build | Android SDK 34, JDK 17 (bytecode target), Gradle 9.x wrapper |
+| Storage | 500 MB+ free (Python runtime + sandboxes) |
+| RAM | 1 GB+ recommended |
 
 ## 🏗️ Project Structure
 
 ```
 krs.pyhive/
-├── app/                           # Android application
+├── app/                            # Android application
 │   ├── src/main/
-│   │   ├── kotlin/com/pythontaskrunner/
-│   │   │   ├── api/              # REST API endpoints
-│   │   │   ├── auth/             # Authentication layer
-│   │   │   ├── models/           # Data models
-│   │   │   ├── python/           # Python runtime
-│   │   │   ├── sandbox/          # File sandboxing
-│   │   │   ├── scheduler/        # Task scheduling
-│   │   │   ├── utils/            # Utilities
-│   │   │   ├── MainActivity.kt
-│   │   │   └── PythonTaskRunnerApp.kt
-│   │   └── res/                  # Resources
-│   ├── build.gradle.kts
-│   └── AndroidManifest.xml
-├── docs/                          # Documentation
-│   ├── README.md                 # Full documentation
-│   ├── QUICKSTART.md             # Get started in 5 minutes
-│   ├── API_EXAMPLES.md           # API usage examples
-│   ├── ARCHITECTURE.md           # System architecture
-│   └── DEVELOPMENT.md            # Development guide
-├── examples/                      # Example scripts
+│   │   ├── kotlin/krs/pyhive/
+│   │   │   ├── api/                # REST server, routing & controllers
+│   │   │   ├── auth/               # Bearer token management
+│   │   │   ├── models/             # Data models & DTOs (TaskModels.kt)
+│   │   │   ├── python/             # Chaquopy runtime integration
+│   │   │   ├── sandbox/            # Per-task file isolation
+│   │   │   ├── scheduler/          # Task lifecycle & concurrency
+│   │   │   ├── data/               # ObjectBox entities & repository
+│   │   │   ├── preferences/        # Encrypted settings layer
+│   │   │   ├── settings/           # Settings UI
+│   │   │   ├── utils/              # Utilities
+│   │   │   ├── MainActivity.kt     # Server status / token UI
+│   │   │   └── PyHiveApp.kt        # Application entry point
+│   │   ├── assets/python/          # Embedded Python worker & sandbox module
+│   │   └── res/                    # Android resources
+│   ├── build.gradle.kts            # App build config (AGP/Chaquopy/ObjectBox)
+│   └── proguard-rules.pro
+├── build.gradle.kts                # Root build file
+├── settings.gradle.kts
+├── gradle.properties               # JVM & Kotlin toolchain flags
+├── gradle/                         # Gradle wrapper config
+├── docs/                           # Documentation
+│   ├── README.md                   # Full reference (API, auth, troubleshooting)
+│   ├── QUICKSTART.md               # Get started in 5 minutes
+│   ├── API_EXAMPLES.md             # Client examples (cURL / Python / JS)
+│   ├── ARCHITECTURE.md             # System design
+│   └── DEVELOPMENT.md              # Build, debug & contribute
+├── examples/                       # Example scripts
 │   ├── README.md
-│   └── EXAMPLE_SCRIPTS.md        # Python script examples
-└── build.gradle.kts              # Root build file
+│   ├── EXAMPLE_SCRIPTS.md
+│   └── sample-webhook-call.py
+└── scripts/                        # Deploy & debug automation
+    └── deploy_and_prepare_debug.sh
 ```
 
 ## 📖 Documentation
 
 | Document | Purpose |
 |----------|---------|
-| [docs/README.md](docs/README.md) | Complete documentation, API reference, troubleshooting |
+| [docs/README.md](docs/README.md) | Complete reference: setup, API, auth, troubleshooting |
 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | Get started in 5 minutes |
-| [docs/API_EXAMPLES.md](docs/API_EXAMPLES.md) | cURL, Python, Node.js examples |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and architecture |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development and contribution guide |
-| [examples/README.md](examples/README.md) | Quick reference for examples |
+| [docs/API_EXAMPLES.md](docs/API_EXAMPLES.md) | cURL, Python & Node.js client examples |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design & component interactions |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Build, debug, and contribute |
+| [examples/README.md](examples/README.md) | Quick example reference |
 | [examples/EXAMPLE_SCRIPTS.md](examples/EXAMPLE_SCRIPTS.md) | Python script examples |
 
 ## 🚀 Quick Start
 
-### 1. Build and Install
+### 1. Build & install on a device
 
 ```bash
 cd krs.pyhive
-./gradlew installDebug
+./gradlew :app:installDebug
 ```
 
-### 2. Get Your API Token
+Installation automatically launches the app on your connected device.
 
-The token appears in the app UI when it launches.
+### 2. Get your API token
 
-### 3. Test the API
+The token is generated on first run and shown on the main screen (masked by default — enable **Show Full Token** in Settings to copy it).
+
+### 3. Submit your first task
 
 ```bash
-# Health check
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:8080/api/health
-
-# Submit a task
 curl -X POST \
   -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"script_content": "print(\"Hello from Python!\")"}' \
+  -F 'params={"script_name":"hello.py","timeout_seconds":30,"args":{"name":"PyHive"}}' \
+  -F 'script=print("Hello from Python!")' \
   http://localhost:8080/api/tasks
 ```
 
-See [QUICKSTART.md](docs/QUICKSTART.md) for detailed setup instructions.
+> Task submission uses **`multipart/form-data`** with `params` (JSON), `script` (text) and optional `args` (JSON) fields — **not** `application/json`. See [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
-## 📡 REST API
+## 📡 REST API — Endpoints
 
-### Endpoints Overview
+All endpoints live under `/api` and **require Bearer auth** (`Authorization: Bearer <token>`).
 
-```
-POST   /api/tasks               # Submit new task
-GET    /api/tasks               # List tasks
-GET    /api/tasks/{id}          # Get task status
-PUT    /api/tasks/{id}/cancel   # Cancel task
-PUT    /api/tasks/{id}/reschedule  # Reschedule task
-DELETE /api/tasks/{id}          # Delete task
-GET    /api/stats               # Server statistics
-GET    /api/health              # Health check
-```
+| Method | Path | Purpose | Response status |
+|---|---|---|---|
+| `POST` | `/api/tasks` | Submit a task (multipart) | `202` |
+| `GET` | `/api/tasks` | List / filter tasks | `200` |
+| `GET` | `/api/tasks/{id}` | Task status & result | `200` / `404` |
+| `PUT` | `/api/tasks/{id}/cancel` | Cancel a task | `200` / `409` |
+| `PUT` | `/api/tasks/{id}/reschedule` | Reschedule a task | `200` / `400` / `409` |
+| `DELETE` | `/api/tasks/{id}` | Delete a task | `200` / `404` |
+| `GET` | `/api/stats` | Server / task statistics | `200` |
+| `GET` | `/api/health` | Health check | `200` |
 
-### Example: Submit and Execute Task
+For the full contract (request bodies, query params, JSON shapes) see [docs/README.md](docs/README.md).
 
-```bash
-# 1. Submit task
-RESPONSE=$(curl -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"script_content": "print(1 + 1)"}' \
-  http://localhost:8080/api/tasks)
+## 📱 Configuration
 
-TASK_ID=$(echo $RESPONSE | jq -r '.task_id')
+Preferences are stored in **encrypted** `EncryptedSharedPreferences` (`AES-256-GCM`) and edited from the in-app **Settings** screen:
 
-# 2. Check status
-curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8080/api/tasks/$TASK_ID | jq '.'
-```
+| Key | Default | Range | Purpose |
+|---|---|---|---|
+| `pref_auto_start_server` | `true` | — | Auto-start API server on launch |
+| `pref_api_port` | `8080` | 1024–65535 | HTTP server port |
+| `pref_default_task_timeout_seconds` | `300` | 5–3600 | Default per-task timeout |
+| `pref_cleanup_age_days` | `7` | 1–30 | Sandbox / task cleanup age |
+| `pref_show_full_token` | `false` | — | Show full token in UI (vs. masked) |
+| `pref_custom_api_token` | auto | — | Custom Bearer token (encrypted) |
 
-For complete API documentation, see [docs/README.md](docs/README.md).
+Changing the port triggers a live server restart; toggling auto-start stops/starts the server.
 
-## 🔐 Authentication
+## 🔒 Security
 
-All API requests require Bearer Token authentication:
+- **Bearer token auth** — every endpoint requires it; the token is a 32-byte (256-bit) Base64 value generated via `SecureRandom`.
+- **Encrypted storage** — preferences and token encrypted with AES-256-GCM (androidx `security-crypto`).
+- **Per-task sandboxes** — each task runs in its own directory under `{externalFilesDir}/python_sandboxes/{taskId}` with a **100 MB quota**.
+- **Runtime file-access restrictions** — Python-level interception of `open`, `os.open`, `os.listdir`, etc. (template-loaded module per task).
+- **Task isolation & cleanup** — sandboxes are removed in a `finally` block after each run; old tasks/sandboxes purged by age.
+- **Path validation** — canonical path checks keep scripts inside their sandbox.
 
-```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:8080/api/health
-```
+## 🛠️ Tech Stack
 
-Token is:
-- Generated automatically on first app run
-- Stored securely (AES-256 encryption)
-- 256-bit random value
-- Unique per device
+| Area | Choice |
+|---|---|
+| Language | Kotlin 2.0.21 (Java 17 bytecode target) |
+| Android | AGP 9, minSdk 30 / targetSdk 34, API 34 |
+| Python | Chaquopy **3.13** (`numpy`, `pandas`, `requests`) |
+| Database | ObjectBox 5.4.2 (embedded, type-safe) |
+| HTTP server | Lightweight custom server (Kotlin/Java sockets) |
+| JSON | Gson 2.10.1 |
+| Logging | Timber 5.0.1 |
+| Scheduling | `ScheduledExecutorService` (4 worker threads) |
+| Security | androidx `security-crypto` (AES-256-GCM) |
+| Async | kotlinx-coroutines 1.7.3 |
 
-## 🎯 Example Use Cases
-
-### 1. Data Processing
-
-```python
-import json
-
-data = {"items": [1, 2, 3, 4, 5]}
-results = [x * 2 for x in data["items"]]
-
-with open("output.json", "w") as f:
-    json.dump({"original": data["items"], "doubled": results}, f)
-
-print("Processing complete")
-```
-
-### 2. Batch Processing
-
-```bash
-for i in {1..10}; do
-  curl -X POST \
-    -H "Authorization: Bearer $TOKEN" \
-    -d "{\"script_content\": \"print('Item $i')\"}" \
-    http://localhost:8080/api/tasks
-done
-```
-
-### 3. Scheduled Tasks
-
-```bash
-# Schedule for 1 hour from now
-FUTURE=$(( $(date +%s) * 1000 + 3600000 ))
-
-curl -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{
-    \"script_content\": \"print('Scheduled!')\",
-    \"scheduled_time\": $FUTURE
-  }" \
-  http://localhost:8080/api/tasks
-```
-
-See [examples/README.md](examples/README.md) for more examples.
-
-## 🏗️ Architecture
-
-The application follows a layered architecture:
-
-```
-┌─────────────────────────────────────────┐
-│        REST API Layer                   │
-│    (PythonTaskRunnerService)            │
-├─────────────────────────────────────────┤
-│        Authentication Layer             │
-│    (AuthenticationManager)              │
-├─────────────────────────────────────────┤
-│        Business Logic Layer             │
-│    (TaskScheduler)                      │
-├─────────────────────────────────────────┤
-│    Security & Isolation Layer           │
-│   (SandboxManager)                      │
-├─────────────────────────────────────────┤
-│    Python Runtime Layer                 │
-│   (PythonRuntimeManager)                │
-└─────────────────────────────────────────┘
-```
-
-For detailed architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## 🔒 Security Features
-
-- **Token Authentication**: Bearer token-based API access
-- **File Sandboxing**: Each task isolated to own directory
-- **Path Validation**: Runtime file access restrictions
-- **Task Isolation**: Independent execution environments
-- **Resource Quotas**: Per-sandbox disk space limits
-- **Encrypted Storage**: Tokens stored with AES-256
-- **Error Isolation**: Failures don't affect other tasks
-
-## 📊 Task Management
-
-### Task States
-
-```
-PENDING  ──→ RUNNING  ──→ COMPLETED
-  ↓
-SCHEDULED
-  ↓
-RUNNING  ──→ FAILED  ──→ (can retry)
-  ↓
-CANCELLED (user initiated)
-```
-
-### Features
-
-- **Status Tracking**: Real-time task status
-- **Result Capture**: stdout and stderr captured
-- **Timeout Handling**: Automatic timeout enforcement
-- **Retry Logic**: Automatic retry for failed tasks
-- **Task Filtering**: Filter by status, tag, or date
-- **Cancellation**: Cancel pending/scheduled tasks
-- **Rescheduling**: Reschedule tasks for later execution
-
-## 🛠️ Dependencies
-
-Key dependencies:
-
-- **Chaquopy** 3.11 - Python runtime
-- **Retrofit2** 2.10.0 - HTTP client
-- **OkHttp3** 4.11.0 - HTTP library
-- **Gson** 2.10.1 - JSON serialization
-- **Timber** 5.0.1 - Logging
-- **Hilt** 2.48 - Dependency injection
-- **Room** 2.5.2 - Local database (optional)
-- **Kotlinx Coroutines** 1.7.3 - Async operations
-
-See [app/build.gradle.kts](app/build.gradle.kts) for complete dependencies.
+See [app/build.gradle.kts](app/build.gradle.kts) for the full dependency list.
 
 ## 🧪 Testing
 
-### Run Tests
+Run the suites from the project root:
 
 ```bash
-# Unit tests
-./gradlew test
-
-# Integration tests
-./gradlew connectedAndroidTest
-
-# With coverage
-./gradlew testDebugUnitTestCoverage
+./gradlew :app:test
+./gradlew :app:testDebugUnitTest
 ```
 
-## 📱 Building
-
-### Debug Build
-
-```bash
-./gradlew installDebug
-```
-
-### Release Build
-
-```bash
-./gradlew bundleRelease
-```
-
-### Custom Port
-
-Edit [PythonTaskRunnerApp.kt](app/src/main/kotlin/com/pythontaskrunner/PythonTaskRunnerApp.kt):
-
-```kotlin
-apiService = PythonTaskRunnerService(
-    ...,
-    port = 9000  // Change port
-)
-```
-
-## 📝 Logging
-
-Enable Timber logging to monitor execution:
-
-```bash
-# View logs
-adb logcat | grep "pythontaskrunner"
-
-# Filter by level
-adb logcat | grep -i "error\|exception"
-```
-
-## 🤝 Contributing
-
-Contributions welcome! See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for:
-- Development environment setup
-- Adding new features
-- Testing guidelines
-- Code style conventions
-
-## 📄 License
-
-MIT License - See LICENSE file
+## 🎓 Todos
+1. Implement per Task Memory Control
+2. Implement per Task Resource Monitoring
+3. Implement Task Queue 
+4. Implement support to Script Project with multiple files
 
 ## 🆘 Support
 
-For issues and questions:
-
-1. **Check Docs**: Review [docs/README.md](docs/README.md)
-2. **Quickstart**: See [docs/QUICKSTART.md](docs/QUICKSTART.md)
-3. **Examples**: Check [examples/EXAMPLE_SCRIPTS.md](examples/EXAMPLE_SCRIPTS.md)
-4. **Architecture**: Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-5. **Troubleshooting**: See troubleshooting section in [docs/README.md](docs/README.md)
-
-## 🎯 Roadmap
-
-Future features under consideration:
-
-- [ ] Database persistence (Room)
-- [ ] OAuth2 authentication
-- [ ] Advanced scheduling (cron)
-- [ ] WebSocket support for real-time updates
-- [ ] Custom Python package installation
-- [ ] Resource metrics and monitoring
-- [ ] Multi-user support
-- [ ] Task dependencies
-- [ ] Plugin system
-
-## 📞 Contact
-
-For questions and suggestions, refer to the documentation or open an issue.
+1. [docs/README.md](docs/README.md) — full reference & troubleshooting
+2. [docs/QUICKSTART.md](docs/QUICKSTART.md) — 5-minute guide
+3. [docs/API_EXAMPLES.md](docs/API_EXAMPLES.md) — client examples
+4. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — internals
+5. [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — build & contribution
 
 ---
 
-**Happy Task Running!** 🚀
-
-Start with [QUICKSTART.md](docs/QUICKSTART.md) to get up and running in 5 minutes!
+**Happy Task Running! 🚀** Start with [docs/QUICKSTART.md](docs/QUICKSTART.md).

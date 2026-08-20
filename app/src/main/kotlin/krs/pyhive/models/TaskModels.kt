@@ -218,3 +218,18 @@ data class TaskExecutionResult(
     val error: String = "",
     val executionTime: Long = 0
 ) : Parcelable
+
+
+/**
+ * Statistics about tasks
+ */
+data class TaskStatistics(
+    val totalTasks: Int,
+    val pendingTasks: Int,
+    val runningTasks: Int,
+    val completedTasks: Int,
+    val failedTasks: Int,
+    val cancelledTasks: Int,
+    val scheduledTasks: Int,
+    val averageExecutionTimeMs: Long
+)

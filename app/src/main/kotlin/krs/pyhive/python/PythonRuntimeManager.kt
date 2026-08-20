@@ -5,6 +5,7 @@ import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.google.gson.Gson
 import krs.pyhive.sandbox.SandboxManager
+import krs.pyhive.utils.AssetUtils
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -178,7 +179,7 @@ class PythonRuntimeManager(
     }
 
     private fun readAssetText(assetPath: String): String {
-        return context.assets.open(assetPath).bufferedReader().use { it.readText() }
+        return AssetUtils.readAssetText(context, assetPath)
     }
 
     /**

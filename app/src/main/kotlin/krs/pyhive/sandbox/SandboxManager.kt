@@ -5,6 +5,7 @@ import timber.log.Timber
 import java.io.File
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
+import krs.pyhive.utils.StringUtils
 
 /**
  * Manages file system sandboxing for Python tasks
@@ -172,15 +173,10 @@ class SandboxManager(private val context: Context) {
         }
 
         return scriptTemplate
-            .replace(SANDBOX_PATH_PLACEHOLDER, escapePythonString(sandboxDir))
-            .replace(CHAQUOPY_PATH_PLACEHOLDER, escapePythonString(chaquopyDir))
+            .replace(SANDBOX_PATH_PLACEHOLDER, StringUtils.escapePythonString(sandboxDir))
+            .replace(CHAQUOPY_PATH_PLACEHOLDER, StringUtils.escapePythonString(chaquopyDir))
     }
 
-    private fun escapePythonString(value: String): String {
-        return value
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-    }
 }
 
 /**

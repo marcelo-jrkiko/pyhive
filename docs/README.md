@@ -1,224 +1,173 @@
-# Python Task Runner API - Android Application
+# KRS PyHive — Full Reference
 
-A comprehensive Android application that acts as a Python Task Runner REST API server. This application embeds a Python 3.11 runtime and provides a secure, scalable platform for executing Python scripts with sandbox isolation, task scheduling, and REST API access.
+> KRS PyHive turns an Android device into a **Python task runner** with a REST API. It embeds a **Python 3.13** runtime (Chaquopy), schedules sandboxed task executions, and persists history in an embedded ObjectBox database.
+
+This is the complete reference. For a fast start, see [QUICKSTART.md](QUICKSTART.md). For client code, see [API_EXAMPLES.md](API_EXAMPLES.md).
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [Features](#features)
-4. [Project Structure](#project-structure)
-5. [Setup Instructions](#setup-instructions)
-6. [REST API Endpoints](#rest-api-endpoints)
-7. [Authentication](#authentication)
-8. [Task Management](#task-management)
-9. [Python Sandboxing](#python-sandboxing)
-10. [Advanced Usage](#advanced-usage)
-11. [Troubleshooting](#troubleshooting)
+2. [Project Structure](#project-structure)
+3. [Setup & First Run](#setup--first-run)
+4. [Configuration](#configuration)
+5. [REST API Reference](#rest-api-reference)
+6. [Authentication](#authentication)
+7. [Task Management](#task-management)
+8. [Python Sandboxing](#python-sandboxing)
+9. [Advanced Usage](#advanced-usage)
+10. [Troubleshooting](#troubleshooting)
+11. [Performance](#performance)
 
 ## Overview
 
-The Python Task Runner is an Android application that transforms your device into a Python execution server. It provides:
+KRS PyHive provides:
 
-- **Embedded Python Runtime**: Python 3.11 runtime via Chaquopy
-- **REST API**: Full HTTP/REST API with Bearer Token authentication
-- **Task Scheduling**: Concurrent and scheduled task execution
-- **File Sandboxing**: Secure file access restrictions per task
-- **Task Isolation**: Complete isolation between different tasks
-- **Comprehensive Logging**: Detailed logging and error handling
+- **Embedded Python** — Python 3.13 both via Chaquopy, with `numpy`, `pandas`, and `requests` pre-installed.
+- **REST API** — a lightweight HTTP server (default `:8080`) serving `/api/*` routes with Bearer-token auth.
+- **Task scheduling** — immediate, scheduled, and reschedulable execution with a 4-thread concurrency pool.
+- **Sandboxing** — every task runs in its own directory (`{externalFilesDir}/python_sandboxes/{taskId}`) with a **100 MB** quota.
+- **Persistence** — task history stored in the embedded ObjectBox database.
+- **Structured logging** — Timber-based.
 
-## Architecture
-
-### Layered Architecture
+### Architecture (summary)
 
 ```
-┌─────────────────────────────────────────┐
-│        REST API Layer                   │
-│    (PythonTaskRunnerService)            │
-├─────────────────────────────────────────┤
-│        Authentication Layer             │
-│    (AuthenticationManager)              │
-├─────────────────────────────────────────┤
-│        Task Scheduler                   │
-│    (TaskScheduler)                      │
-├─────────────────────────────────────────┤
-│   Python Runtime + Sandboxing           │
-│   (PythonRuntimeManager + SandboxManager)│
-├─────────────────────────────────────────┤
-│   Android System (File System, etc.)    │
-└─────────────────────────────────────────┘
+REST API Layer        PythonTaskRunnerService + ApiRoutes + TaskApiController
+Auth Layer            AuthenticationManager
+Scheduler             TaskScheduler
+Sandbox               SandboxManager
+Python Runtime        PythonRuntimeManager (Chaquopy worker model)
+Persistence           TaskRepository (ObjectBox)
 ```
 
-### Components
-
-1. **PythonTaskRunnerService**: Lightweight HTTP server handling incoming REST requests
-2. **AuthenticationManager**: Bearer token generation and validation
-3. **TaskScheduler**: Manages task lifecycle, scheduling, and execution
-4. **PythonRuntimeManager**: Executes Python scripts with timeout support
-5. **SandboxManager**: Enforces file access restrictions per task
-6. **Task Models**: Data classes representing tasks and API responses
-
-## Features
-
-✅ **Embedded Python Runtime**
-- Python 3.11 via Chaquopy
-- Pre-compiled standard library
-- Support for pip packages
-
-✅ **Bearer Token Authentication**
-- Secure token generation
-- Encrypted token storage
-- Per-request validation
-
-✅ **Task Execution**
-- Immediate or scheduled execution
-- Concurrent task processing
-- Task result capture (stdout, stderr)
-- Automatic timeout handling
-
-✅ **Task Management**
-- Submit, query, cancel, reschedule, and delete tasks
-- Task status tracking
-- Retry mechanism for failed tasks
-- Task tagging and filtering
-
-✅ **File Sandboxing**
-- Per-task isolated directory
-- File access restrictions enforced at Python level
-- Disk space quotas per sandbox
-- Automatic cleanup of old sandboxes
-
-✅ **Advanced Features**
-- Task statistics and monitoring
-- Health check endpoint
-- Comprehensive error handling
-- Timber-based structured logging
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design.
 
 ## Project Structure
 
 ```
-app/
-├── src/main/
-│   ├── kotlin/com/pythontaskrunner/
-│   │   ├── api/
-│   │   │   └── PythonTaskRunnerService.kt      # REST API Server
-│   │   ├── auth/
-│   │   │   └── AuthenticationManager.kt        # Token Management
-│   │   ├── models/
-│   │   │   └── TaskModels.kt                   # Data Classes
-│   │   ├── python/
-│   │   │   └── PythonRuntimeManager.kt         # Python Integration
-│   │   ├── sandbox/
-│   │   │   └── SandboxManager.kt               # File Isolation
-│   │   ├── scheduler/
-│   │   │   └── TaskScheduler.kt                # Task Management
-│   │   ├── utils/
-│   │   │   └── Utils.kt                        # Utility Functions
-│   │   ├── MainActivity.kt                      # Main UI Activity
-│   │   └── PythonTaskRunnerApp.kt              # Application Class
-│   └── res/
-│       ├── layout/
-│       │   └── activity_main.xml
-│       └── values/
-│           ├── colors.xml
-│           ├── strings.xml
-│           └── styles.xml
-├── build.gradle.kts
-├── proguard-rules.pro
-└── AndroidManifest.xml
+app/src/main/kotlin/krs/pyhive/
+├── api/
+│   ├── ApiController.kt            # Route-handler interface
+│   ├── ApiRoutes.kt               # Central route matching (/api/*)
+│   ├── TaskApiController.kt       # Task lifecycle handlers
+│   └── PythonTaskRunnerService.kt # HTTP server implementation
+├── auth/
+│   └── AuthenticationManager.kt    # Bearer token gen/validation (AES-256-GCM storage)
+├── models/
+│   └── TaskModels.kt              # PythonTask, DTOs, TaskStatus enum
+├── python/
+│   └── PythonRuntimeManager.kt     # Chaquopy init & worker-driven execution
+├── sandbox/
+│   └── SandboxManager.kt           # Per-task file isolation
+├── scheduler/
+│   └── TaskScheduler.kt            # Task lifecycle, concurrency, stats
+├── data/
+│   ├── TaskEntity.kt               # ObjectBox entity
+│   ├── TaskRepository.kt           # ObjectBox queries
+│   └── TaskMappings.kt
+├── preferences/
+│   └── AppPreferences.kt          # Encrypted-settings access layer
+├── settings/
+│   ├── SettingsActivity.kt
+│   └── SettingsFragment.kt         # PreferencesFragment UI
+├── utils/
+│   └── Utils.kt
+├── MainActivity.kt                 # Server status & token display
+└── PyHiveApp.kt                    # App entry point / component wiring
 
-build.gradle.kts
-settings.gradle.kts
+app/src/main/assets/python/
+├── task_worker.py                  # Worker executed inside Chaquopy per task
+└── file_access_restrictions.py     # Sandbox path-restriction template
 ```
 
-## Setup Instructions
+## Setup & First Run
 
 ### Prerequisites
 
-- Android Studio 2022.1 or later
-- Android SDK 26+ (API Level 26+)
-- 500MB+ free space for Python runtime and sandboxes
-- Kotlin 1.9.10+
+- Android device / emulator with API **30+**.
+- Build host: Android SDK **34**, JDK 17 bytecode target, **Gradle 9.x** wrapper (this repo ships `gradlew`).
+- ~500 MB free storage for the Python runtime.
 
-### Building the Project
+### Build & Install
 
-1. **Clone or extract the project**
-   ```bash
-   cd krs.pyhive
-   ```
-
-2. **Open in Android Studio**
-   - File → Open → Select project directory
-   - Wait for Gradle sync to complete
-
-3. **Configure Build Settings**
-   - Edit `app/build.gradle.kts` if needed
-   - Ensure compileSdk = 34 and targetSdk = 34
-
-4. **Build the APK**
-   ```bash
-   ./gradlew build
-   ```
-
-5. **Run on Device/Emulator**
-   ```bash
-   ./gradlew installDebug
-   ```
-
-### First Run Setup
-
-When the app launches for the first time:
-
-1. **API Token Generation**: A secure Bearer token is automatically generated
-2. **Python Initialization**: Python 3.11 runtime is initialized
-3. **Directory Creation**: Sandbox directories are created in app-specific storage
-4. **API Server**: REST API server starts on port 8080
-
-Check the main activity for:
-- API token (for authentication)
-- Server status
-- Initial task statistics
-
-## REST API Endpoints
-
-### Base URL
-```
-http://localhost:8080/api
+```bash
+cd krs.pyhive
+./gradlew :app:installDebug
 ```
 
-### Common Headers
-```
-Authorization: Bearer <token>
-Content-Type: application/json
-```
+This builds the debug APK, installs it, and launches `krs/pyhive/.MainActivity` on your connected device. For an automated build + install + debug-prep flow, use [scripts/deploy_and_prepare_debug.sh](../../scripts/deploy_and_prepare_debug.sh).
 
-> **Note:** Submitting a task uses **multipart/form-data** with two fields:
-> - `params` — a JSON string with the task parameters (`script_name`, `scheduled_time`, `timeout_seconds`, `tags`, optional `args` JSON object)
-> - `script` — the raw Python script content
->
-> The `Content-Type` header for submission must be `multipart/form-data; boundary=...` (cURL `-F` sets this automatically).
+### First Run
 
-### Endpoints
+On launch, `PyHiveApp.onCreate()` runs:
 
-#### 1. Submit a New Task
-**POST** `/tasks`
+1. Plants Timber (debug tree on `DEBUG` builds, release tree otherwise).
+2. Opens encrypted preferences (`EncryptedSharedPreferences`, AES-256-GCM).
+3. Initializes `AuthenticationManager` — generates a 256-bit **Bearer token** if none exists.
+4. Initializes sandboxing, Python runtime (Chaquopy), ObjectBox, and the task repository.
+5. Starts the API server **iff** `pref_auto_start_server` is enabled.
+6. Purges old tasks & sandboxes based on `pref_cleanup_age_days`.
 
-Submit a Python script for execution using a multipart form.
+The main screen shows server status and (masked) API token. Enable **Show Full Token** in Settings to copy the complete token.
 
-**Request Body (multipart/form-data):**
-- `params` (`application/json` part): task parameters
-- `script` (`text/plain` part): the Python script content
+## Configuration
 
-**Using cURL:**
+Preferences are edited in-app (Settings) and stored encrypted.
+
+| Key | Default | Range | Effect |
+|---|---|---|---|
+| `pref_auto_start_server` | `true` | — | Start/stop API server on app launch |
+| `pref_api_port` | `8080` | 1024–65535 | HTTP server port (restart on change) |
+| `pref_default_task_timeout_seconds` | `300` | 5–3600 | Default execution timeout |
+| `pref_cleanup_age_days` | `7` | 1–30 | Task/sandbox purge age |
+| `pref_show_full_token` | `false` | — | Reveal full token in UI |
+| `pref_custom_api_token` | auto | — | Custom bearer token (encrypted) |
+
+## REST API Reference
+
+**Base URL** — `http://<device-ip>:<port>/api`, e.g. `http://localhost:8080/api` (or the emulator IP like `10.0.2.2`).
+
+**Headers** — All responses are JSON (Gson). Task submission is `multipart/form-data`.
+
+**Auth** — `Authorization: Bearer <token>` on **all** endpoints.
+
+> ⚠️ The JSON wire format uses **snake_case** fields (`task_id`, `created_at`, `new_scheduled_time`, …). Kotlin fields keep camelCase via `@SerializedName`.
+
+### Endpoint Summary
+
+| Method | Path | Purpose | Success | Errors |
+|---|---|---|---|---|
+| `POST` | `/api/tasks` | Submit task | `202` | `400` |
+| `GET` | `/api/tasks` | List / filter tasks | `200` | `400`,`500` |
+| `GET` | `/api/tasks/{id}` | Status & result | `200` | `404`,`500` |
+| `PUT` | `/api/tasks/{id}/cancel` | Cancel | `200` | `409`,`500` |
+| `PUT` | `/api/tasks/{id}/reschedule` | Reschedule | `200` | `400`,`409` |
+| `DELETE` | `/api/tasks/{id}` | Delete | `200` | `404`,`500` |
+| `GET` | `/api/stats` | Statistics | `200` | `500` |
+| `GET` | `/api/health` | Health | `200` | —|
+
+### 1. Submit a Task — `POST /api/tasks`
+
+Submits a Python script as a **multipart form** with these parts:
+
+| Part | Type | Notes |
+|---|---|---|
+| `params` | JSON string | `script_name`, `scheduled_time` (ms epoch), `timeout_seconds`, `tags[]` |
+| `script` | text | Raw Python source |
+| `args` | JSON string (optional) | Object passed to `main(args)`; must be a JSON object |
+
+**cURL:**
+
 ```bash
 curl -X POST \
   -H "Authorization: Bearer <token>" \
-  -F 'params={"script_name":"hello_world.py","scheduled_time":null,"timeout_seconds":300,"tags":["test","hello"],"args":{"name":"PyHive"}}' \
+  -F 'params={"script_name":"hello.py","timeout_seconds":30,"tags":["demo"],"args":{"name":"PyHive"}}' \
   -F 'script=print("Hello from Python!")' \
   http://localhost:8080/api/tasks
 ```
 
-**Response (202 Accepted):**
+**Response `202`:**
+
 ```json
 {
   "task_id": "uuid-string",
@@ -228,12 +177,12 @@ curl -X POST \
 }
 ```
 
-#### 2. Get Task Status
-**GET** `/tasks/{taskId}`
+The `timeout_seconds` defaults to the preference default (300) when `<=0`.
 
-Get the current status and results of a task.
+### 2. Get Task Status — `GET /api/tasks/{id}`
 
-**Response (200 OK):**
+**Response `200`:**
+
 ```json
 {
   "task_id": "uuid-string",
@@ -242,103 +191,58 @@ Get the current status and results of a task.
   "result": "Hello from Python!",
   "output": "Hello from Python!",
   "error": null,
-  "progress": 100
+  "progress": 0
 }
 ```
 
-#### 3. List All Tasks
-**GET** `/tasks`
+`404` if not found.
 
-List all tasks with optional filtering.
+### 3. List Tasks — `GET /api/tasks`
 
-**Query Parameters:**
-- `status`: Filter by status (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, SCHEDULED)
-- `tag`: Filter by tag
-- `limit`: Maximum number of tasks to return (default: 100)
+Query params (optional): `status`, `tag`, `limit` (default `100`).
 
-**Response (200 OK):**
+**Response `200`:**
+
 ```json
 {
   "tasks": [
     {
       "task_id": "uuid-string",
       "status": "COMPLETED",
-      "execution_time": 1234,
-      "result": "output",
-      "output": "output",
-      "error": null
+      "execution_time": 45,
+      "result": "…",
+      "output": "…",
+      "error": null,
+      "progress": 0
     }
   ],
   "total_count": 150,
-  "filtered_count": 10
+  "filtered_count": 3
 }
 ```
 
-**Examples:**
-```bash
-# Get all pending tasks
-GET /tasks?status=PENDING
+### 4. Cancel — `PUT /api/tasks/{id}/cancel`
 
-# Get tasks with specific tag
-GET /tasks?tag=batch_job
+**Response `200`:** `{"message":"Task cancelled successfully","task_id":"…"}`
 
-# Limit results
-GET /tasks?limit=50
-```
+`409` when the task is already terminal.
 
-#### 4. Cancel a Task
-**PUT** `/tasks/{taskId}/cancel`
+### 5. Reschedule — `PUT /api/tasks/{id}/reschedule`
 
-Cancel a pending or scheduled task.
+Body (`application/json`): `{"new_scheduled_time": 1692345600000}`
 
-**Response (200 OK):**
-```json
-{
-  "message": "Task cancelled successfully",
-  "task_id": "uuid-string"
-}
-```
+**Response `200`:** `{"message":"Task rescheduled successfully","task_id":"…","new_scheduled_time":1692345600000}`
 
-#### 5. Reschedule a Task
-**PUT** `/tasks/{taskId}/reschedule`
+`400` on malformed request, `409` on invalid state.
 
-Reschedule a pending or scheduled task.
+### 6. Delete — `DELETE /api/tasks/{id}`
 
-**Request Body:**
-```json
-{
-  "new_scheduled_time": 1692345600000
-}
-```
+**Response `200`:** `{"message":"Task deleted successfully","task_id":"…"}` · `404` if not found.
 
-**Response (200 OK):**
-```json
-{
-  "message": "Task rescheduled successfully",
-  "task_id": "uuid-string",
-  "new_scheduled_time": 1692345600000
-}
-```
+### 7. Statistics — `GET /api/stats`
 
-#### 6. Delete a Task
-**DELETE** `/tasks/{taskId}`
+**Response `200`:**
 
-Delete a task and its sandbox.
-
-**Response (200 OK):**
-```json
-{
-  "message": "Task deleted successfully",
-  "task_id": "uuid-string"
-}
-```
-
-#### 7. Get Server Statistics
-**GET** `/stats`
-
-Get overall server statistics.
-
-**Response (200 OK):**
 ```json
 {
   "total_tasks": 150,
@@ -352,12 +256,10 @@ Get overall server statistics.
 }
 ```
 
-#### 8. Health Check
-**GET** `/health`
+### 8. Health — `GET /api/health`
 
-Check server health and status.
+**Response `200`:**
 
-**Response (200 OK):**
 ```json
 {
   "status": "healthy",
@@ -366,374 +268,165 @@ Check server health and status.
 }
 ```
 
-## Authentication
+### Error Shape
 
-### Bearer Token Mechanism
+All error responses use:
 
-The API uses Bearer tokens for authentication. All requests must include a valid token.
-
-### Token Management
-
-#### Getting the Token
-
-1. **From Main Activity**: The token is displayed in the UI (first 20 characters)
-2. **From SharedPreferences**: Retrieved programmatically
-3. **From Logs**: Check Timber logs for "Generated initial API token"
-
-#### Using the Token
-
-Include the token in the `Authorization` header:
-
-```bash
-curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-     http://localhost:8080/api/health
+```json
+{
+  "error_code": "400",
+  "message": "Human-readable message",
+  "details": null,
+  "timestamp": 1692345600000
+}
 ```
 
-#### Token Security
+## Authentication
 
-- Tokens are generated using `SecureRandom` (256-bit)
-- Stored in `EncryptedSharedPreferences`
-- Base64 encoded for transmission
-- Validated on every request
+- Tokens are 32-byte (256-bit) Base64 values generated by `SecureRandom` in `AuthenticationManager.generateNewToken()`.
+- Stored encrypted in `EncryptedSharedPreferences` and validated on every request.
+- Every request must include `Authorization: Bearer <token>`.
+- Use the token from the app UI, or set a custom one (via `pref_custom_api_token`).
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8080/api/health
+```
 
 ## Task Management
 
-### Task Lifecycle
+### Lifecycle
 
 ```
 PENDING → RUNNING → COMPLETED
-   ↓         ↓
-SCHEDULED  FAILED
-   ↓         ↓
-(execution) (can retry)
-   ↓
-CANCELLED (by user)
+   │          │
+   ▼          ▼
+CANCELLED   FAILED
+   │
+SCHEDULED → RUNNING
 ```
 
-### Task Status Meanings
+| Status | Meaning | Can transition to |
+|---|---|---|
+| `PENDING` | Queued, not yet started | RUNNING, CANCELLED |
+| `RUNNING` | Executing | COMPLETED, FAILED, CANCELLED |
+| `SCHEDULED` | Future execution | RUNNING, CANCELLED |
+| `COMPLETED` | Success (terminal) | — |
+| `FAILED` | Error (terminal) | — |
+| `CANCELLED` | User-cancelled (terminal) | — |
 
-| Status | Meaning | Transitions |
-|--------|---------|-------------|
-| PENDING | Waiting for execution | → RUNNING, CANCELLED |
-| RUNNING | Currently executing | → COMPLETED, FAILED |
-| COMPLETED | Successfully finished | → (terminal) |
-| FAILED | Execution error | → Retry or delete |
-| CANCELLED | Cancelled by user | → (terminal) |
-| SCHEDULED | Scheduled for future | → RUNNING, CANCELLED |
-
-### Retry Mechanism
-
-- Failed tasks can be retried automatically (up to maxRetries)
-- Each task has `retryCount` and `maxRetries` fields
-- After all retries exhausted, task enters FAILED state permanently
-
-### Task Timeout
-
-- Default timeout: 300 seconds (5 minutes)
-- Maximum timeout: 3600 seconds (1 hour)
-- When timeout occurs: Task fails with "Script execution exceeded timeout" error
+- **Timeout** — default `pref_default_task_timeout_seconds` (300); per-request override via `params.timeout_seconds` (max 3600).
+- **Retry** — a task has `retry_count` / `max_retries` (default 3); when exhausted it lands in `FAILED` permanently.
+- **Cleanup** — tasks older than `pref_cleanup_age_days` are purged on startup.
 
 ## Python Sandboxing
 
-### Sandbox Architecture
+Sandbox root: `{externalFilesDir}/python_sandboxes/{taskId}` (100 MB per sandbox).
 
-Each task gets an isolated directory:
-```
-/app_storage/python_sandboxes/
-├── task_id_1/
-│   ├── task_script.py
-│   ├── output.txt
-│   └── ... (user-created files)
-├── task_id_2/
-│   └── ...
-```
+Each task:
+1. The worker (`task_worker.py`) writes your script to `user_script.py` in the sandbox.
+2. It `exec`s the enforcement module `file_access_restrictions.py` (template, path arguments substituted at runtime).
+3. It `exec`s the user script in a fresh globals frame.
+4. Redirects `stdout`/`stderr`, captures output/result, then **deletes the sandbox in a `finally` block** (regardless of success/failure).
+5. Drops task-imported modules to reduce cross-task leakage.
 
-### File Access Restrictions
-
-Python scripts can ONLY access files within their sandbox directory. Any attempt to access files outside results in `PermissionError`.
-
-#### Example - Allowed Operations
+**Enforced restrictions** (`PermissionError`):
 
 ```python
-# Write to sandbox
-with open('output.txt', 'w') as f:
-    f.write('Hello')
+# ❌ BLOCKED — absolute path outside sandbox
+open('/etc/passwd', 'r')
 
-# Create subdirectories
-import os
-os.makedirs('subdir/nested')
+# ❌ BLOCKED — escaping via '..'
+open('../../../etc/passwd', 'r')
 
-# List directory
-files = os.listdir('.')
-
-# Read files in sandbox
-with open('output.txt', 'r') as f:
-    content = f.read()
+# ❌ BLOCKED — symlinked path escape
+open('/data/something/…')
 ```
 
-#### Example - Forbidden Operations
+**Allowed** — relative reads/writes inside the sandbox, subdirectory creation, listing.
 
-```python
-# Read files outside sandbox - ❌ BLOCKED
-with open('/system/build.prop', 'r') as f:
-    pass
-
-# Access parent directory - ❌ BLOCKED
-with open('../../../etc/passwd', 'r') as f:
-    pass
-
-# Absolute paths outside sandbox - ❌ BLOCKED
-with open('/data/app/data', 'r') as f:
-    pass
-```
-
-### Sandbox Size Quotas
-
-- Maximum per-sandbox: 100 MB
-- Enforced at write time
-- Automatic cleanup of old sandboxes (7 days old by default)
-
-### Sandbox Cleanup
-
-- On task deletion: Sandbox immediately deleted
-- Automatic cleanup: Sandboxes > 7 days old
-- On restart: Cleanup triggered on app start
+> Both the per-task sandbox and the internal `{filesDir}/chaquopy` paths are whitelisted (Chaquopy may create requirement dirs at runtime).
 
 ## Advanced Usage
 
-### Submitting Complex Python Scripts
-
-#### Data Processing Example
-
-```python
-import json
-import os
-
-# Input data
-data = {
-    'items': [1, 2, 3, 4, 5],
-    'multiplier': 3
-}
-
-# Process data
-results = [x * data['multiplier'] for x in data['items']]
-
-# Save results
-output = {
-    'original': data['items'],
-    'processed': results,
-    'sum': sum(results)
-}
-
-# Write to file
-with open('results.json', 'w') as f:
-    json.dump(output, f, indent=2)
-
-# Print summary
-print(f"Processed {len(results)} items")
-print(f"Sum: {sum(results)}")
-```
-
-### Scheduled Task Execution
-
-**Submit a task to run in 5 minutes:**
+### Scheduled Execution
 
 ```bash
-# Calculate scheduled time (5 minutes from now)
-SCHEDULED_TIME=$(($(date +%s000) + 5*60*1000))
-
-curl -X POST http://localhost:8080/api/tasks \
+SCHEDULED_TIME=$(( $(date +%s) * 1000 + 5 * 60 * 1000 ))   # +5 min
+curl -X POST \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "params={\"script_name\":\"scheduled.py\",\"scheduled_time\":$SCHEDULED_TIME}" \
-  -F "script=print('Scheduled task executed')"
+  -F "script=print('Scheduled task executed')" \
+  http://localhost:8080/api/tasks
 ```
 
-### Batch Task Processing
+### Passing Arguments
 
-**Submit multiple tasks:**
+Provide `args` as a JSON object in a multipart part — the worker calls `main(args)`:
 
 ```bash
-#!/bin/bash
-TOKEN="YOUR_TOKEN"
-
-for i in {1..10}; do
-  curl -X POST http://localhost:8080/api/tasks \
-    -H "Authorization: Bearer $TOKEN" \
-    -F "params={\"script_name\":\"batch_$i.py\",\"tags\":[\"batch\",\"iteration_$i\"]}" \
-    -F "script=print('Task $i')"
-done
+curl -X POST \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F 'params={"script_name":"with_args.py"}' \
+  -F 'args={"items":[1,2,3],"factor":10}' \
+  -F 'script=
+def main(a):
+    print(sum(a["items"]) * a["factor"])
+'
 ```
 
-### Monitoring with Scripts
+### Python packages / modules
+
+`numpy`, `pandas`, and `requests` ship with the runtime via `chaquopy { pip { install(...) } }` — import them directly. To add more, edit `app/build.gradle.kts` and rebuild.
+
+### Monitoring a task
 
 ```bash
-#!/bin/bash
-TOKEN="YOUR_TOKEN"
-TASK_ID="$1"
-
+TASK_ID=…
+TOKEN=…
 while true; do
-  STATUS=$(curl -s -H "Authorization: Bearer $TOKEN" \
-    http://localhost:8080/api/tasks/$TASK_ID | jq -r '.status')
-  
-  echo "Status: $STATUS"
-  
-  if [[ "$STATUS" == "COMPLETED" || "$STATUS" == "FAILED" ]]; then
-    break
-  fi
-  
+  s=$(curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/tasks/$TASK_ID)
+  st=$(jq -r '.status' <<<"$s")
+  echo "$st"
+  [[ "$st" == "COMPLETED" || "$st" == "FAILED" ]] && break
   sleep 2
 done
 ```
 
-### Adding Custom Python Modules
-
-To include additional Python packages, modify the script to install dependencies:
-
-```python
-import subprocess
-import sys
-
-# Install packages (if needed)
-packages = ['numpy', 'pandas']
-for package in packages:
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
-
-# Now use installed packages
-import numpy as np
-result = np.array([1, 2, 3]) * 2
-print(result)
-```
-
 ## Troubleshooting
 
-### Common Issues
+### "Unauthorized" / invalid token
+- Format must be `Bearer <token>` (case-sensitive). Copy from Settings with **Show Full Token** toggled on.
 
-#### 1. "Unauthorized: Invalid or missing bearer token"
+### "Connection refused"
+- Ensure the app is running and the server is up (`pref_auto_start_server`). On the emulator use the emulator IP (e.g. `http://10.0.2.2:8080/api/health`) instead of `localhost`.
+- Check the port didn't change in Settings.
 
-**Solution:**
-- Check token format: `Bearer <token>`
-- Verify token from app UI
-- Token is case-sensitive
+### Python init fails
+- Check free storage (≥~500 MB) and that Chaquopy supplies are present. Look for `Failed to initialize Python` in the logs.
 
-#### 2. "Python initialization failed"
+### Task stuck in RUNNING / timeout
+- Check for infinite loops; raise `timeout_seconds`; or cancel (`PUT /api/tasks/{id}/cancel`).
 
-**Solution:**
-- Ensure minimum Android SDK 26
-- Check available storage (≥500MB)
-- Clear app data and restart
-- Check Timber logs for details
+### "Access denied: Cannot read '{path}'"
+- Script escaped its sandbox — use relative paths and keep reads/writes under `./`.
 
-#### 3. Task execution timeout
+### Build / JVM issues (developers)
+- This project pins `org.gradle.java.home` to a JDK (see `gradle.properties`) and sets `android.builtInKotlin=false` + `android.newDsl=false` for kapt under Gradle 9 + AGP 9. A full JDK must be on `PATH` for local CLI builds.
 
-**Solution:**
-- Increase `timeout_seconds` parameter (max: 3600)
-- Optimize Python script performance
-- Break into smaller tasks
+## Performance
 
-#### 4. "Access denied: Cannot read '{path}'. Only files in {sandbox} are accessible"
-
-**Solution:**
-- Ensure all file operations are within sandbox directory
-- Use relative paths in scripts
-- Create subdirectories inside sandbox if needed
-
-#### 5. "Failed to create sandbox directory"
-
-**Solution:**
-- Check app has write permissions
-- Verify storage available
-- Check AndroidManifest permissions
-
-#### 6. Task stuck in RUNNING state
-
-**Solution:**
-- Check Timber logs for errors
-- Use timeout parameter to prevent infinite loops
-- Cancel task and try again
-
-### Logging
-
-Enable detailed logging with Timber:
-
-```kotlin
-// In MainActivity or any Activity
-import timber.log.Timber
-
-Timber.d("Debug message")
-Timber.i("Info message")
-Timber.w("Warning message")
-Timber.e("Error message")
-```
-
-View logs in Android Studio:
-```bash
-./gradlew logcat
-```
-
-Or use adb:
-```bash
-adb logcat | grep "python"
-```
-
-### Debugging Python Scripts
-
-Add debug output to scripts:
-
-```python
-import sys
-import traceback
-
-try:
-    # Your code here
-    result = 1 / 0  # Example error
-except Exception as e:
-    print(f"ERROR: {str(e)}", file=sys.stderr)
-    traceback.print_exc()
-    sys.exit(1)
-```
-
-## Performance Considerations
-
-### Optimization Tips
-
-1. **Batch Processing**: Submit related tasks together with tags
-2. **Resource Management**: Monitor sandbox sizes
-3. **Concurrent Limits**: Default 4 concurrent tasks (adjustable)
-4. **Cleanup**: Regular cleanup of completed tasks
-5. **Script Optimization**: Use efficient Python code
-
-### Monitoring
-
-Check statistics endpoint regularly:
-```bash
-curl -H "Authorization: Bearer TOKEN" \
-  http://localhost:8080/api/stats
-```
-
-### Resource Usage
-
-- Per-task memory: ~50-200MB (varies with script)
-- Per-sandbox disk: Up to 100MB
-- Python runtime: ~100MB
-- API server: <10MB
-
-## Security Considerations
-
-1. **Token Security**: Keep tokens confidential
-2. **File Isolation**: Sandboxing prevents unauthorized file access
-3. **Process Isolation**: Each task runs independently
-4. **Timeout Protection**: Prevents denial of service
-5. **Error Handling**: Errors don't leak sensitive info
-6. **Encryption**: Tokens stored encrypted in SharedPreferences
+- Concurrency is capped at **4** worker threads (`TaskScheduler`).
+- Each sandbox limited to **100 MB**.
+- Runtime footprint: Python ~100 MB, API server minimal.
+- Prefer batched submissions with `tags`, and periodically delete completed tasks.
 
 ## License
 
-MIT License - See LICENSE file for details
+MIT — see the `LICENSE` file.
 
 ## Support
 
-For issues and questions:
-1. Check Timber logs
-2. Review endpoint response errors
-3. Consult troubleshooting section
-4. Check task status and output
+1. Check Timber logs (`adb logcat | grep python`).
+2. Review endpoint error responses.
+3. Consult this troubleshooting section or [DEVELOPMENT.md](DEVELOPMENT.md).
+4. Open an issue in the repository.
