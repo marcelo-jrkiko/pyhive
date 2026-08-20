@@ -6,6 +6,7 @@ import krs.pyhive.models.*
 import krs.pyhive.python.PythonRuntimeManager
 import krs.pyhive.sandbox.SandboxManager
 import krs.pyhive.scheduler.TaskScheduler
+import krs.pyhive.preferences.AppPreferences
 import kotlinx.coroutines.*
 import timber.log.Timber
 import java.io.BufferedReader
@@ -26,11 +27,11 @@ class PythonTaskRunnerService(
     private val taskScheduler: TaskScheduler,
     private val pythonRuntimeManager: PythonRuntimeManager,
     private val sandboxManager: SandboxManager,
+    private val appPreferences: AppPreferences,
     private val port: Int = 8080
 ) {
 
     companion object {
-        private const val MAX_PAYLOAD_SIZE = 10 * 1024 * 1024 // 10MB
         private const val CONTENT_TYPE_JSON = "application/json"
         private const val AUTH_HEADER = "Authorization"
     }
@@ -57,6 +58,7 @@ class PythonTaskRunnerService(
 
         scope.launch {
             try {
+
                 serverSocket = ServerSocket(port)
                 isRunning = true
                 Timber.d("API server started on port $port")
@@ -113,7 +115,6 @@ class PythonTaskRunnerService(
 
             val method = parts[0]
             val path = parts[1]
-            val protocol = parts[2]
 
             // Read headers
             val headers = mutableMapOf<String, String>()
@@ -272,7 +273,8 @@ $body
         val contentLengthLine = reader.readLine()
         val contentLength = contentLengthLine?.toIntOrNull() ?: 0
 
-        if (contentLength == 0 || contentLength > MAX_PAYLOAD_SIZE) {
+        val maxPayloadSize = appPreferences.maxPayloadSizeBytes()
+        if (contentLength == 0 || contentLength > maxPayloadSize) {
             throw IllegalArgumentException("Invalid or oversized payload")
         }
 

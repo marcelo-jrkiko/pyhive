@@ -37,6 +37,18 @@ class SettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedP
             maxValue = AppPreferences.MAX_CLEANUP_DAYS,
             invalidMessageRes = R.string.pref_invalid_cleanup_days
         )
+        configureNumericPreference(
+            key = AppPreferences.KEY_MAX_TASK_MEMORY_MB,
+            minValue = AppPreferences.MIN_MAX_TASK_MEMORY_MB,
+            maxValue = AppPreferences.MAX_MAX_TASK_MEMORY_MB,
+            invalidMessageRes = R.string.pref_invalid_max_task_memory
+        )
+        configureNumericPreference(
+            key = AppPreferences.KEY_MAX_PAYLOAD_SIZE_MB,
+            minValue = AppPreferences.MIN_MAX_PAYLOAD_SIZE_MB,
+            maxValue = AppPreferences.MAX_MAX_PAYLOAD_SIZE_MB,
+            invalidMessageRes = R.string.pref_invalid_max_payload_size
+        )
         refreshDynamicSummaries()
     }
 
@@ -151,6 +163,18 @@ class SettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedP
             sharedPreferences.getString(
                 AppPreferences.KEY_CLEANUP_AGE_DAYS,
                 AppPreferences.DEFAULT_CLEANUP_DAYS.toString()
+            )
+
+        findPreference<EditTextPreference>(AppPreferences.KEY_MAX_TASK_MEMORY_MB)?.summary =
+            sharedPreferences.getString(
+                AppPreferences.KEY_MAX_TASK_MEMORY_MB,
+                AppPreferences.DEFAULT_MAX_TASK_MEMORY_MB.toString()
+            )
+
+        findPreference<EditTextPreference>(AppPreferences.KEY_MAX_PAYLOAD_SIZE_MB)?.summary =
+            sharedPreferences.getString(
+                AppPreferences.KEY_MAX_PAYLOAD_SIZE_MB,
+                AppPreferences.DEFAULT_MAX_PAYLOAD_SIZE_MB.toString()
             )
     }
 }

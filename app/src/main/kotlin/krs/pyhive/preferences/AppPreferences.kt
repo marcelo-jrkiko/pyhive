@@ -13,11 +13,13 @@ class AppPreferences(context: Context) {
         const val KEY_SHOW_FULL_TOKEN = "pref_show_full_token"
         const val KEY_CUSTOM_API_TOKEN = "pref_custom_api_token"
         const val KEY_MAX_TASK_MEMORY_MB = "pref_max_task_memory_mb"
+        const val KEY_MAX_PAYLOAD_SIZE_MB = "http_max_payload_size_mb"
 
         const val DEFAULT_PORT = 8080
         const val DEFAULT_TIMEOUT_SECONDS = 300
         const val DEFAULT_CLEANUP_DAYS = 7
         const val DEFAULT_MAX_TASK_MEMORY_MB = 1024
+        const val DEFAULT_MAX_PAYLOAD_SIZE_MB = 10
 
         const val MIN_PORT = 1024
         const val MAX_PORT = 65535
@@ -25,6 +27,10 @@ class AppPreferences(context: Context) {
         const val MAX_TIMEOUT_SECONDS = 3600
         const val MIN_CLEANUP_DAYS = 1
         const val MAX_CLEANUP_DAYS = 30
+        const val MIN_MAX_TASK_MEMORY_MB = 0
+        const val MAX_MAX_TASK_MEMORY_MB = 8192
+        const val MIN_MAX_PAYLOAD_SIZE_MB = 1
+        const val MAX_MAX_PAYLOAD_SIZE_MB = 1024
     }
 
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -50,11 +56,25 @@ class AppPreferences(context: Context) {
 
     /** Maximum JVM heap (in MB) a task may use; 0 disables the watchdog. */
     fun maxTaskMemoryMb(): Int =
-        sanitizeMemoryLimitMb(preferences.getString(KEY_MAX_TASK_MEMORY_MB, DEFAULT_MAX_TASK_MEMORY_MB.toString()))
+        sanitizeMemoryLimitMb(
+            preferences.getString(KEY_MAX_TASK_MEMORY_MB, DEFAULT_MAX_TASK_MEMORY_MB.toString()),
+            default = DEFAULT_MAX_TASK_MEMORY_MB
+        )
 
     /** Maximum JVM heap (in bytes) a task may use; 0 disables the watchdog. */
     fun maxTaskMemoryBytes(): Long =
         maxTaskMemoryMb().toLong() * 1024L * 1024L
+
+    /** Maximum HTTP request body (in MB) the API server will accept. */
+    fun maxPayloadSizeMb(): Int =
+        sanitizeMemoryLimitMb(
+            preferences.getString(KEY_MAX_PAYLOAD_SIZE_MB, DEFAULT_MAX_PAYLOAD_SIZE_MB.toString()),
+            default = DEFAULT_MAX_PAYLOAD_SIZE_MB
+        )
+
+    /** Maximum HTTP request body (in bytes) the API server will accept. */
+    fun maxPayloadSizeBytes(): Long =
+        maxPayloadSizeMb().toLong() * 1024L * 1024L
 
     private fun sanitizePort(raw: String?): Int {
         val parsed = raw?.toIntOrNull() ?: DEFAULT_PORT
@@ -71,8 +91,8 @@ class AppPreferences(context: Context) {
         return parsed.coerceIn(MIN_CLEANUP_DAYS, MAX_CLEANUP_DAYS)
     }
 
-    private fun sanitizeMemoryLimitMb(raw: String?): Int {
-        val parsed = raw?.toIntOrNull() ?: DEFAULT_MAX_TASK_MEMORY_MB
+    private fun sanitizeMemoryLimitMb(raw: String?, default: Int): Int {
+        val parsed = raw?.toIntOrNull() ?: default
         return if (parsed <= 0) 0 else parsed
     }
 }

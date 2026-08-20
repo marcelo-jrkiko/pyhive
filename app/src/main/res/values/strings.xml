@@ -20,6 +20,10 @@
     <string name="pref_default_timeout_summary">Used when request timeout is missing or invalid</string>
     <string name="pref_cleanup_days_title">Cleanup age (days)</string>
     <string name="pref_cleanup_days_summary">Delete old tasks and sandboxes after this age</string>
+    <string name="pref_max_task_memory_title">Max task memory (MB)</string>
+    <string name="pref_max_task_memory_summary">JVM heap limit per task; 0 disables the watchdog</string>
+    <string name="pref_max_payload_size_title">Max HTTP payload size (MB)</string>
+    <string name="pref_max_payload_size_summary">Reject API requests with bodies larger than this</string>
     <string name="pref_category_ui">Display</string>
     <string name="pref_show_full_token_title">Show full API token</string>
     <string name="pref_show_full_token_summary">Disable to mask token in the main screen</string>
@@ -28,4 +32,6 @@
     <string name="pref_invalid_port">Port must be between 1024 and 65535</string>
     <string name="pref_invalid_timeout">Timeout must be between 5 and 3600 seconds</string>
     <string name="pref_invalid_cleanup_days">Cleanup age must be between 1 and 30 days</string>
+    <string name="pref_invalid_max_task_memory">Max task memory must be between 0 and 8192 MB</string>
+    <string name="pref_invalid_max_payload_size">Max payload size must be between 1 and 1024 MB</string>
 </resources>

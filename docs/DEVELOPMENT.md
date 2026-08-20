@@ -645,8 +645,7 @@ taskScheduler.cleanupOldTasks()
 ```kotlin
 // Implement request batching
 // Use gzip compression
-// Limit payload sizes
-const val MAX_PAYLOAD_SIZE = 10 * 1024 * 1024  // 10MB
+// Limit payload sizes (configurable in Settings; see AppPreferences.maxPayloadSizeBytes())
 ```
 
 ---
