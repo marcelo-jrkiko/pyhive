@@ -58,12 +58,22 @@ class TaskScheduler(
                 // Create sandbox for task
                 sandboxManager.createSandbox(task.taskId)
 
+                // Set output dir early so it's visible while the task runs
+                val taskOutputDir = java.io.File(context.getExternalFilesDir(null), "task_output/${task.taskId}")
+                taskRepository.save(task.copy(outputDir = taskOutputDir.absolutePath))
+
                 // Execute Python script
                 val result = pythonRuntimeManager.executePythonScript(
                     taskId = task.taskId,
                     scriptContent = task.scriptContent,
                     argsJson = task.argsJson,
-                    timeoutSeconds = task.timeoutSeconds
+                    timeoutSeconds = task.timeoutSeconds,
+                    onMemoryUpdate = { peakBytes ->
+                        val t = taskRepository.get(task.taskId)
+                        if (t != null) {
+                            taskRepository.save(t.copy(memoryUsage = peakBytes))
+                        }
+                    }
                 )
 
                 // Update task with results
@@ -75,7 +85,9 @@ class TaskScheduler(
                     output = result.output,
                     executionTime = result.executionTimeMs,
                     completedAt = System.currentTimeMillis(),
-                    startedAt = current.startedAt ?: System.currentTimeMillis()
+                    startedAt = current.startedAt ?: System.currentTimeMillis(),
+                    outputDir = result.outputDir,
+                    memoryUsage = result.memoryUsage
                 )
                 taskRepository.save(updatedTask)
 
@@ -96,7 +108,9 @@ class TaskScheduler(
                     status = TaskStatus.FAILED.name,
                     error = e.message ?: "Unknown error",
                     completedAt = System.currentTimeMillis(),
-                    startedAt = current.startedAt ?: System.currentTimeMillis()
+                    startedAt = current.startedAt ?: System.currentTimeMillis(),
+                    outputDir = current.outputDir,
+                    memoryUsage = current.memoryUsage
                 )
                 taskRepository.save(failedTask)
                 updateTaskStatus(task.taskId, TaskStatus.FAILED)

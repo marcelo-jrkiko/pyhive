@@ -92,7 +92,8 @@ class PythonRuntimeManager(
         taskId: String,
         scriptContent: String,
         argsJson: String = "{}",
-        timeoutSeconds: Long = 300
+        timeoutSeconds: Long = 300,
+        onMemoryUpdate: ((Long) -> Unit)? = null
     ): ScriptExecutionResult {
         return try {
             initializePython()
@@ -119,7 +120,8 @@ class PythonRuntimeManager(
                 taskId = taskId,
                 python = python,
                 params = params,
-                timeoutSeconds = timeoutSeconds
+                timeoutSeconds = timeoutSeconds,
+                onMemoryUpdate = onMemoryUpdate
             )
 
             ScriptExecutionResult(
@@ -128,6 +130,8 @@ class PythonRuntimeManager(
                 result = result.result,
                 error = result.error,
                 executionTimeMs = result.executionTimeMs,
+                outputDir = result.output_dir,
+                memoryUsage = result.memoryUsage
             )
         } catch (e: TimeoutException) {
             Timber.e("Script execution timeout for task $taskId: $e")
@@ -162,7 +166,8 @@ class PythonRuntimeManager(
         taskId: String,
         python: Python,
         params: WorkerTaskParams,
-        timeoutSeconds: Long
+        timeoutSeconds: Long,
+        onMemoryUpdate: ((Long) -> Unit)? = null
     ): WorkerProcessResult {
         return executionLock.withLock {
             val maxMemoryBytes = appPreferences.maxTaskMemoryBytes()
@@ -204,15 +209,27 @@ class PythonRuntimeManager(
             // Memory watchdog: samples the process JVM heap and interrupts the
             // worker once usage exceeds the limit across consecutive samples,
             // so transient spikes that the GC can reclaim don't kill the task.
+            // Also tracks peak memory usage for telemetry.
             val stopWatchdog = AtomicBoolean(false)
+            val peakMemoryBytes = java.util.concurrent.atomic.AtomicLong(0)
             val watchdog = if (maxMemoryBytes > 0) {
                 Thread(
                     {
                         var overrunSamples = 0
+                        var lastReportedMem = 0L
                         while (!stopWatchdog.get()) {
                             if (!executionThread.isAlive) break
 
                             val usedBytes = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
+                            peakMemoryBytes.updateAndGet { max(it, usedBytes) }
+
+                            // Notify listener roughly once per second when memory changes significantly
+                            val peak = peakMemoryBytes.get()
+                            if (peak != lastReportedMem) {
+                                lastReportedMem = peak
+                                onMemoryUpdate?.invoke(peak)
+                            }
+
                             if (usedBytes > maxMemoryBytes) {
                                 overrunSamples++
                                 if (overrunSamples >= MEMORY_OVERRUN_SAMPLES) {
@@ -256,6 +273,7 @@ class PythonRuntimeManager(
             }
 
             gson.fromJson(workerResultJson, WorkerProcessResult::class.java)
+                ?.copy(memoryUsage = peakMemoryBytes.get())
                 ?: throw RuntimeException("Failed to parse worker result payload")
         }
     }
@@ -300,7 +318,9 @@ data class ScriptExecutionResult(
     val result: String = "",
     val error: String = "",
     val executionTimeMs: Long = 0,
-    val output: String = ""
+    val output: String = "",
+    val outputDir: String = "",
+    val memoryUsage: Long = 0
 )
 
 private data class WorkerTaskParams(
@@ -318,5 +338,6 @@ private data class WorkerProcessResult(
     val result: String = "",
     val error: String = "",
     val output_dir: String = "",
-    val executionTimeMs: Long = 0
+    val executionTimeMs: Long = 0,
+    val memoryUsage: Long = 0
 )

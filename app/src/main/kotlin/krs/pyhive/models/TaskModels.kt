@@ -76,7 +76,13 @@ data class PythonTask(
     val tags: List<String> = emptyList(),
 
     @SerializedName("args_json")
-    val argsJson: String = "{}"
+    val argsJson: String = "{}",
+
+    @SerializedName("output_dir")
+    var outputDir: String = "",
+
+    @SerializedName("memory_usage")
+    var memoryUsage: Long = 0
 ) : Parcelable
 
 /**

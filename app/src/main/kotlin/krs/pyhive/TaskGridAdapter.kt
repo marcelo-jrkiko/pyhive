@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import krs.pyhive.models.PythonTask
 import krs.pyhive.models.TaskStatus
+import krs.pyhive.utils.StringUtils
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -17,7 +18,8 @@ import java.util.concurrent.TimeUnit
  * Each item shows a card with task name, ID, status badge, and timing info.
  */
 class TaskGridAdapter(
-    private var tasks: List<PythonTask> = emptyList()
+    private var tasks: List<PythonTask> = emptyList(),
+    private val onLogsClick: ((PythonTask) -> Unit)? = null
 ) : RecyclerView.Adapter<TaskGridAdapter.TaskViewHolder>() {
 
     private val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
@@ -53,6 +55,12 @@ class TaskGridAdapter(
             cardView.findViewById(R.id.status_badge)
         private val taskTime: android.widget.TextView =
             cardView.findViewById(R.id.task_time)
+        private val taskMemory: android.widget.TextView =
+            cardView.findViewById(R.id.task_memory)
+        private val taskMemoryRow: android.view.ViewGroup =
+            cardView.findViewById(R.id.task_memory_row)
+        private val logsButton: android.widget.Button =
+            cardView.findViewById(R.id.logs_button)
 
         fun bind(task: PythonTask) {
             val context = cardView.context
@@ -84,6 +92,20 @@ class TaskGridAdapter(
 
             // Time info
             taskTime.text = buildTimeInfo(task, status)
+
+            // Memory usage info
+            val memText = buildMemoryInfo(task)
+            if (memText != null) {
+                taskMemory.text = memText
+                taskMemoryRow.visibility = android.view.View.VISIBLE
+            } else {
+                taskMemoryRow.visibility = android.view.View.GONE
+            }
+
+            // Logs button
+            logsButton.setOnClickListener {
+                onLogsClick?.invoke(task)
+            }
 
             // Card stroke color for running tasks
             if (status == TaskStatus.RUNNING) {
@@ -161,6 +183,11 @@ class TaskGridAdapter(
                 val secs = seconds % 60
                 "${minutes}m ${secs}s"
             }
+        }
+
+        private fun buildMemoryInfo(task: PythonTask): String? {
+            if (task.memoryUsage <= 0) return null
+            return "Peak: ${StringUtils.formatBytes(task.memoryUsage)}"
         }
     }
 }

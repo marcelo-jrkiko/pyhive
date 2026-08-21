@@ -133,13 +133,15 @@ def run_task(params_payload):
         "stdout": "",
         "stderr": "",
         "executionTimeMs": 0,
+        "memoryUsage": 0,
     }
     
     params = _parse_params(params_payload)
     
     # Writes the error into the output log
     stderr_path, stdout_path = get_output_paths(params.get("output_dir", ""))
-
+    
+    payload["output_dir"] = params.get("output_dir", "")
     payload["stdfiles"] = {
         "stdout": stdout_path,
         "stderr": stderr_path,

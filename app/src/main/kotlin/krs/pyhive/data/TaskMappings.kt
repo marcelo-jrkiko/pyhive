@@ -28,7 +28,9 @@ fun PythonTask.toEntity(): TaskEntity = TaskEntity(
     retryCount = retryCount,
     maxRetries = maxRetries,
     tagsJson = gson.toJson(tags),
-    argsJson = argsJson
+    argsJson = argsJson,
+    outputDir = outputDir,
+    memoryUsage = memoryUsage
 )
 
 fun TaskEntity.copyFrom(task: PythonTask) {
@@ -51,6 +53,8 @@ fun TaskEntity.copyFrom(task: PythonTask) {
     maxRetries = task.maxRetries
     tagsJson = gson.toJson(task.tags)
     argsJson = task.argsJson
+    outputDir = task.outputDir
+    memoryUsage = task.memoryUsage
 }
 
 fun TaskEntity.toPythonTask(): PythonTask = PythonTask(
@@ -76,5 +80,7 @@ fun TaskEntity.toPythonTask(): PythonTask = PythonTask(
     } catch (_: Exception) {
         emptyList()
     },
-    argsJson = argsJson
+    argsJson = argsJson,
+    outputDir = outputDir,
+    memoryUsage = memoryUsage
 )

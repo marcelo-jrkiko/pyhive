@@ -58,7 +58,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Setup task grid
-        taskGridAdapter = TaskGridAdapter()
+        taskGridAdapter = TaskGridAdapter(
+            onLogsClick = { task ->
+                val intent = Intent(this, TaskLogsActivity::class.java).apply {
+                    putExtra("task_id", task.taskId)
+                    putExtra("script_name", task.scriptName)
+                }
+                startActivity(intent)
+            }
+        )
         taskGrid.apply {
             layoutManager = GridLayoutManager(this@MainActivity, GRID_COLUMNS)
             adapter = taskGridAdapter

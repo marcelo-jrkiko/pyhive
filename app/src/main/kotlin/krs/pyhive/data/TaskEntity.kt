@@ -28,5 +28,7 @@ data class TaskEntity(
     var retryCount: Int = 0,
     var maxRetries: Int = 3,
     var tagsJson: String = "[]",
-    var argsJson: String = "{}"
+    var argsJson: String = "{}",
+    var outputDir: String = "",
+    var memoryUsage: Long = 0
 )

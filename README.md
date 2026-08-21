@@ -186,6 +186,16 @@ Changing the port triggers a live server restart; toggling auto-start stops/star
 
 See [app/build.gradle.kts](app/build.gradle.kts) for the full dependency list.
 
+### Python Packages
+ - Numpy
+ - Pandas
+ - joblib
+ - requests 
+ - openai
+ - dotenv
+ - scikit 
+  - The scikit package is a custom build wheel for Android 34 and Python 3.13 in ARM V8 CPU. Choquapy repository seens to have pre-builded packages for Android 16 and 24. So change it for your platform.
+
 ## 🧪 Testing
 
 Run the suites from the project root:

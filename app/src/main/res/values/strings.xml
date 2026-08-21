@@ -49,4 +49,8 @@
     <string name="server_status_running">Server running on port %1$d • IP: %2$s</string>
     <string name="server_status_stopped">Server stopped</string>
     <string name="task_count_format">%1$d running</string>
+    <string name="view_logs">Logs</string>
+    <string name="logs_header_format">Task: %1$s • ID: %2$s</string>
+    <string name="logs_empty">No log output yet. Logs will appear here as the task runs.</string>
+    <string name="logs_error">Error reading logs: %1$s</string>
 </resources>

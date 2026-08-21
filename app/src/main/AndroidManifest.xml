@@ -37,6 +37,12 @@
             android:label="@string/settings_title"
             android:parentActivityName=".MainActivity" />
 
+        <activity
+            android:name=".TaskLogsActivity"
+            android:exported="false"
+            android:label="Task Logs"
+            android:parentActivityName=".MainActivity" />
+
         </application>
 
 </manifest>

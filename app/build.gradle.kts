@@ -58,7 +58,8 @@ chaquopy {
             install("requests")
             install("openai")
             install("python-dotenv")
-            install("../wheels/scikit_learn-1.10.dev0-cp313-cp313-android_34_arm64_v8a")
+            install("joblib")
+            install("../wheels/scikit_learn-1.10.dev0-cp313-cp313-android_34_arm64_v8a.whl")
             //install("faiss")
         }
     }
