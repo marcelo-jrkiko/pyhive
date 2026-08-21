@@ -43,4 +43,10 @@
     <string name="pref_cors_methods_summary">Comma-separated HTTP methods (e.g. GET, POST, OPTIONS)</string>
     <string name="pref_cors_headers_title">Allowed headers</string>
     <string name="pref_cors_headers_summary">Comma-separated request headers (e.g. Authorization, Content-Type)</string>
+
+    <!-- Task grid -->
+    <string name="no_running_tasks">No running tasks</string>
+    <string name="server_status_running">Server running on port %1$d • IP: %2$s</string>
+    <string name="server_status_stopped">Server stopped</string>
+    <string name="task_count_format">%1$d running</string>
 </resources>

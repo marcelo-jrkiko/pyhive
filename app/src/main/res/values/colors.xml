@@ -4,4 +4,15 @@
     <color name="primary_dark">#506c64</color>
     <color name="accent">#cdd3d5</color>
     <color name="ic_launcher_background">#220c10</color>
+
+    <!-- Task status colors -->
+    <color name="status_running">#2196F3</color>
+    <color name="status_completed">#4CAF50</color>
+    <color name="status_failed">#F44336</color>
+    <color name="status_pending">#FF9800</color>
+    <color name="status_scheduled">#9C27B0</color>
+    <color name="status_cancelled">#9E9E9E</color>
+
+    <!-- Background -->
+    <color name="grid_background">#F5F5F5</color>
 </resources>

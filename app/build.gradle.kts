@@ -19,7 +19,7 @@ android {
         versionName = "1.0.0"
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += listOf("arm64-v8a")
         }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -58,7 +58,7 @@ chaquopy {
             install("requests")
             install("openai")
             install("python-dotenv")
-            
+            install("../wheels/scikit_learn-1.10.dev0-cp313-cp313-android_34_arm64_v8a")
             //install("faiss")
         }
     }
@@ -68,6 +68,7 @@ dependencies {
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("com.google.android.material:material:1.10.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
