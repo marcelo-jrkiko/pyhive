@@ -30,14 +30,19 @@ def _parse_args(args_payload):
         return parsed
     raise TypeError("Task args must be a JSON object")
 
+def get_output_paths(output_dir):    
+    stdout_path = os.path.join(output_dir, f"stdout.log")
+    stderr_path = os.path.join(output_dir, f"stderr.log")
+    return stdout_path, stderr_path
 
-def _run_task(params):
+def _run_task(params, stdfiles=None):
     task_id = str(params["taskId"])
     script_content = params["scriptContent"]
     sandbox_dir = params["sandboxDir"]
     user_script_path = params["userScriptPath"]
     restriction_module = params["restrictionModule"]
     args_object = _parse_args(params.get("argsJson"))
+    output_dir = params.get("output_dir", "")
 
     original_cwd = os.getcwd()
     before_modules = set(sys.modules.keys())
@@ -47,8 +52,9 @@ def _run_task(params):
         "__builtins__": __builtins__,
     }
 
-    output_buffer = io.StringIO()
-    error_buffer = io.StringIO()
+    output_buffer = open(stdfiles["stdout"], "w", encoding="utf-8")
+    error_buffer = open(stdfiles["stderr"], "w", encoding="utf-8")
+        
     result_text = ""
 
     try:
@@ -110,7 +116,12 @@ def _run_task(params):
         for module_name in (after_modules - before_modules):
             sys.modules.pop(module_name, None)
 
-    return result_text, output_buffer.getvalue(), error_buffer.getvalue()
+        # Close file handles when using file-based output.
+        if stdfiles is not None:
+            output_buffer.close()
+            error_buffer.close()
+
+    return result_text
 
 
 def run_task(params_payload):
@@ -123,19 +134,33 @@ def run_task(params_payload):
         "stderr": "",
         "executionTimeMs": 0,
     }
+    
+    params = _parse_params(params_payload)
+    
+    # Writes the error into the output log
+    stderr_path, stdout_path = get_output_paths(params.get("output_dir", ""))
 
-    try:
-        params = _parse_params(params_payload)
-        result_text, stdout_content, stderr_content = _run_task(params)
+    payload["stdfiles"] = {
+        "stdout": stdout_path,
+        "stderr": stderr_path,
+    }
+
+    try:        
+        result_text = _run_task(params, payload["stdfiles"])
         payload["success"] = True
         payload["result"] = result_text
-        payload["stdout"] = stdout_content
-        payload["stderr"] = stderr_content
     except Exception as exc:
         payload["success"] = False
         payload["error"] = str(exc)
-        payload["stderr"] = traceback.format_exc()
+                
+        with open(stderr_path, "a", encoding="utf-8") as error_buffer:
+            error_buffer.write(f"Exception: {str(exc)}\n")
+            traceback.print_exc(file=error_buffer)
+         
     finally:
         payload["executionTimeMs"] = int((time.time() - started_at) * 1000)
 
+   
+    
+        
     return json.dumps(payload)

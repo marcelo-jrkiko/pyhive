@@ -7,7 +7,8 @@ from pathlib import Path
 # File access restriction module
 __allowed_path__ = "__SANDBOX_DIR__"
 __chaquopy_path__ = "__CHAQUOPY_DIR__"
-__allowed_paths__ = [__allowed_path__, __chaquopy_path__]
+__output_dir__ = "__OUTPUT_DIR__"
+__allowed_paths__ = [p for p in (__allowed_path__, __chaquopy_path__, __output_dir__) if p]
 
 def _check_path(path, operation="read"):
     '''Verify that path is within the sandbox'''

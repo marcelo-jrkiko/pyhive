@@ -7,12 +7,14 @@ import krs.pyhive.models.PythonTask
 import krs.pyhive.models.RescheduleTaskRequest
 import krs.pyhive.models.SubmitTaskParams
 import krs.pyhive.models.TaskListResponse
+import krs.pyhive.models.TaskLogsResponse
 import krs.pyhive.models.TaskResponse
 import krs.pyhive.models.TaskStatus
 import krs.pyhive.models.TaskStatusResponse
 import krs.pyhive.preferences.AppPreferences
 import krs.pyhive.scheduler.TaskScheduler
 import timber.log.Timber
+import java.io.File
 
 /**
  * Dedicated controller for all task lifecycle endpoints.
@@ -29,7 +31,8 @@ class TaskApiController(
             is ApiRoutes.Match.ListTasks,
             is ApiRoutes.Match.CancelTask,
             is ApiRoutes.Match.RescheduleTask,
-            is ApiRoutes.Match.DeleteTask -> true
+            is ApiRoutes.Match.DeleteTask,
+            is ApiRoutes.Match.GetTaskLogs -> true
 
             else -> false
         }
@@ -43,6 +46,7 @@ class TaskApiController(
             is ApiRoutes.Match.CancelTask -> handleCancelTask(context, route.taskId)
             is ApiRoutes.Match.RescheduleTask -> handleRescheduleTask(context, route.taskId)
             is ApiRoutes.Match.DeleteTask -> handleDeleteTask(context, route.taskId)
+            is ApiRoutes.Match.GetTaskLogs -> handleGetTaskLogs(context, route.taskId, route.query)
             else -> context.sendError(404, "Endpoint not found")
         }
     }
@@ -213,6 +217,52 @@ class TaskApiController(
             Timber.e("Error deleting task: $e")
             requestContext.sendError(500, "Failed to delete task")
         }
+    }
+
+    private fun handleGetTaskLogs(requestContext: ApiRequestContext, taskId: String, query: String) {
+        try {
+            val task = taskScheduler.getTask(taskId)
+            if (task == null) {
+                requestContext.sendError(404, "Task not found: $taskId")
+                return
+            }
+
+            val params = requestContext.parseQueryParams(query)
+            val lines = params["lines"]?.toIntOrNull() ?: 100
+
+            val outputDir = File(context.getExternalFilesDir(null), "task_output/$taskId")
+            val stdoutFile = File(outputDir, "stdout.log")
+            val stderrFile = File(outputDir, "stderr.log")
+
+            val (stdoutLines, stdoutTotal) = readLastLines(stdoutFile, lines)
+            val (stderrLines, stderrTotal) = readLastLines(stderrFile, lines)
+
+            val response = TaskLogsResponse(
+                taskId = taskId,
+                lines = arrayOf(*stdoutLines.toTypedArray(), *stderrLines.toTypedArray()),
+                linesRequested = lines,
+                totalLines = stdoutTotal + stderrTotal
+            )
+
+            requestContext.sendJson(200, response)
+        } catch (e: Exception) {
+            Timber.e("Error getting task logs: $e")
+            requestContext.sendError(500, "Failed to get task logs: ${e.message}")
+        }
+    }
+
+    /**
+     * Reads the last [maxLines] lines from the given file.
+     * Returns a pair of (requested lines, total line count).
+     * If the file does not exist, returns (emptyList(), 0).
+     */
+    private fun readLastLines(file: File, maxLines: Int): Pair<List<String>, Int> {
+        if (!file.exists() || !file.isFile) {
+            return Pair(emptyList(), 0)
+        }
+        val allLines = file.readLines()
+        val tail = if (allLines.size <= maxLines) allLines else allLines.takeLast(maxLines)
+        return Pair(tail, allLines.size)
     }
 
     private fun normalizeArgsJson(argsPayload: String?): String {

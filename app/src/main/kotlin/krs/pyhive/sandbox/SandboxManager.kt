@@ -19,6 +19,7 @@ class SandboxManager(private val context: Context) {
         private const val FILE_ACCESS_RESTRICTION_ASSET = "python/file_access_restrictions.py"
         private const val SANDBOX_PATH_PLACEHOLDER = "__SANDBOX_DIR__"
         private const val CHAQUOPY_PATH_PLACEHOLDER = "__CHAQUOPY_DIR__"
+        private const val OUTPUT_DIR_PLACEHOLDER = "__OUTPUT_DIR__"
     }
 
     private val sandboxPaths = ConcurrentHashMap<String, File>()
@@ -157,9 +158,13 @@ class SandboxManager(private val context: Context) {
     }
 
     /**
-     * Create a Python module that enforces file access restrictions
+     * Create a Python module that enforces file access restrictions.
+     *
+     * @param taskId       The task identifier used to locate the sandbox.
+     * @param outputDir    Optional output directory path that should also be
+     *                     writable by the task; replaces __OUTPUT_DIR__.
      */
-    fun getFileAccessRestrictionModule(taskId: String): String {
+    fun getFileAccessRestrictionModule(taskId: String, outputDir: String = ""): String {
         val sandboxDir = getSandboxDir(taskId)?.absolutePath ?: ""
         val chaquopyDir = File(context.filesDir, "chaquopy").absolutePath
         val scriptTemplate = try {
@@ -175,6 +180,7 @@ class SandboxManager(private val context: Context) {
         return scriptTemplate
             .replace(SANDBOX_PATH_PLACEHOLDER, StringUtils.escapePythonString(sandboxDir))
             .replace(CHAQUOPY_PATH_PLACEHOLDER, StringUtils.escapePythonString(chaquopyDir))
+            .replace(OUTPUT_DIR_PLACEHOLDER, StringUtils.escapePythonString(outputDir))
     }
 
 }

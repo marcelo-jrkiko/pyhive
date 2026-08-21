@@ -233,3 +233,20 @@ data class TaskStatistics(
     val scheduledTasks: Int,
     val averageExecutionTimeMs: Long
 )
+
+/**
+ * Response model for task log tail endpoint.
+ */
+data class TaskLogsResponse(
+    @SerializedName("task_id")
+    val taskId: String,
+
+    @SerializedName("lines")
+    val lines: Array<String>,
+
+    @SerializedName("lines_requested")
+    val linesRequested: Int,
+
+    @SerializedName("total_lines")
+    val totalLines: Int
+)

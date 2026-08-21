@@ -56,6 +56,10 @@ chaquopy {
             install("numpy")
             install("pandas")
             install("requests")
+            install("openai")
+            install("python-dotenv")
+            
+            //install("faiss")
         }
     }
 }

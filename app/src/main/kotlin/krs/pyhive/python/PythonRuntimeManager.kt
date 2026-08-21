@@ -7,6 +7,7 @@ import com.google.gson.Gson
 import krs.pyhive.preferences.AppPreferences
 import krs.pyhive.sandbox.SandboxManager
 import krs.pyhive.utils.AssetUtils
+import krs.pyhive.utils.StringUtils
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -110,7 +111,8 @@ class PythonRuntimeManager(
                 sandboxDir = sandboxDir.absolutePath,
                 userScriptPath = userScriptFile.absolutePath,
                 restrictionModule = sandboxManager.getFileAccessRestrictionModule(taskId),
-                argsJson = argsJson.ifBlank { "{}" }
+                argsJson = argsJson.ifBlank { "{}" },
+                output_dir = ""
             )
 
             val result = executeWorkerProcess(
@@ -126,15 +128,6 @@ class PythonRuntimeManager(
                 result = result.result,
                 error = result.error,
                 executionTimeMs = result.executionTimeMs,
-                output = buildString {
-                    if (result.stdout.isNotBlank()) {
-                        append(result.stdout)
-                    }
-                    if (result.stderr.isNotBlank()) {
-                        if (isNotEmpty()) append('\n')
-                        append(result.stderr)
-                    }
-                }
             )
         } catch (e: TimeoutException) {
             Timber.e("Script execution timeout for task $taskId: $e")
@@ -172,12 +165,21 @@ class PythonRuntimeManager(
         timeoutSeconds: Long
     ): WorkerProcessResult {
         return executionLock.withLock {
-            val paramsJson = gson.toJson(params)
             val maxMemoryBytes = appPreferences.maxTaskMemoryBytes()
-
             var workerResultJson = ""
             val workerError = AtomicReference<String?>()
             val memoryLimitError = AtomicReference<String?>()
+            
+            val taskOutputDir = File(context.getExternalFilesDir(null), "task_output/$taskId")
+            if (!taskOutputDir.exists()) {
+                val created = taskOutputDir.mkdirs()
+                if (!created) {
+                    throw RuntimeException("Failed to create task output directory for task $taskId")
+                }
+            }
+            params.output_dir = taskOutputDir.absolutePath
+            params.restrictionModule = sandboxManager.getFileAccessRestrictionModule(taskId, taskOutputDir.absolutePath)
+            val paramsJson = gson.toJson(params)
 
             val executionThread = Thread(
                 {
@@ -214,7 +216,7 @@ class PythonRuntimeManager(
                             if (usedBytes > maxMemoryBytes) {
                                 overrunSamples++
                                 if (overrunSamples >= MEMORY_OVERRUN_SAMPLES) {
-                                    val message = "${formatBytes(usedBytes)} exceeded the memory limit of ${formatBytes(maxMemoryBytes)}"
+                                    val message = "${StringUtils.formatBytes(usedBytes)} exceeded the memory limit of ${StringUtils.formatBytes(maxMemoryBytes)}"
                                     memoryLimitError.set(message)
                                     Timber.w("Stopping task $taskId: $message")
                                     executionThread.interrupt()
@@ -269,14 +271,6 @@ class PythonRuntimeManager(
         return AssetUtils.readAssetText(context, assetPath)
     }
 
-    private fun formatBytes(bytes: Long): String {
-        return if (bytes >= 1024 * 1024) {
-            String.format("%.1f MB", bytes / (1024.0 * 1024.0))
-        } else {
-            "$bytes bytes"
-        }
-    }
-
     /**
      * Stop Python runtime
      */
@@ -314,15 +308,15 @@ private data class WorkerTaskParams(
     val scriptContent: String,
     val sandboxDir: String,
     val userScriptPath: String,
-    val restrictionModule: String,
-    val argsJson: String
+    var restrictionModule: String,
+    val argsJson: String,
+    var output_dir: String
 )
 
 private data class WorkerProcessResult(
     val success: Boolean = false,
     val result: String = "",
     val error: String = "",
-    val stdout: String = "",
-    val stderr: String = "",
+    val output_dir: String = "",
     val executionTimeMs: Long = 0
 )
