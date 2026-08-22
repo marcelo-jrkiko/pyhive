@@ -1,5 +1,6 @@
 
 import os
+from time import sleep
 import requests
 
 WEBHOOK_URL = "https://webhook.site/c34f0a9f-6da7-4b39-b3f9-506607480bb3"
@@ -18,4 +19,5 @@ def main(args):
 
     print(f"Sending webhook with payload")
     send_webhook(payload)
+    sleep(10)
     print(f"Webhook sent successfully")

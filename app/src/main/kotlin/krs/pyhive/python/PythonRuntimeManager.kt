@@ -221,7 +221,7 @@ class PythonRuntimeManager(
                             if (!executionThread.isAlive) break
 
                             val usedBytes = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
-                            peakMemoryBytes.updateAndGet { max(it, usedBytes) }
+                            peakMemoryBytes.updateAndGet { it.coerceAtLeast(usedBytes) }
 
                             // Notify listener roughly once per second when memory changes significantly
                             val peak = peakMemoryBytes.get()

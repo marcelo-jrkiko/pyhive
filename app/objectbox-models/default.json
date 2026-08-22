@@ -5,7 +5,7 @@
   "entities": [
     {
       "id": "1:4049591075845885667",
-      "lastPropertyId": "20:6021098588426813268",
+      "lastPropertyId": "22:3183703504261231804",
       "name": "TaskEntity",
       "properties": [
         {
@@ -108,6 +108,16 @@
           "id": "20:6021098588426813268",
           "name": "argsJson",
           "type": 9
+        },
+        {
+          "id": "21:1726056207429759365",
+          "name": "outputDir",
+          "type": 9
+        },
+        {
+          "id": "22:3183703504261231804",
+          "name": "memoryUsage",
+          "type": 6
         }
       ],
       "relations": []

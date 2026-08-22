@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import krs.pyhive.models.PythonTask
 import krs.pyhive.models.TaskStatus
 import krs.pyhive.utils.StringUtils
@@ -31,7 +32,7 @@ class TaskGridAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_task_card, parent, false)
+            .inflate(R.layout.item_task_card, parent, false) as MaterialCardView
         return TaskViewHolder(view)
     }
 
@@ -42,7 +43,7 @@ class TaskGridAdapter(
     override fun getItemCount(): Int = tasks.size
 
     inner class TaskViewHolder(
-        private val cardView: com.google.android.material.card.MaterialCardView
+        private val cardView: MaterialCardView
     ) : RecyclerView.ViewHolder(cardView) {
 
         private val statusIndicator: android.view.View =
