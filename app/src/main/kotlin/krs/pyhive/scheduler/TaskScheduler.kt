@@ -58,9 +58,13 @@ class TaskScheduler(
                 // Create sandbox for task
                 sandboxManager.createSandbox(task.taskId)
 
-                // Set output dir early so it's visible while the task runs
+                // Set output dir early so it's visible while the task runs.
+                // Read the current entity so we preserve the RUNNING status.
                 val taskOutputDir = java.io.File(context.getExternalFilesDir(null), "task_output/${task.taskId}")
-                taskRepository.save(task.copy(outputDir = taskOutputDir.absolutePath))
+                val currentForDir = taskRepository.get(task.taskId)
+                if (currentForDir != null) {
+                    taskRepository.save(currentForDir.copy(outputDir = taskOutputDir.absolutePath))
+                }
 
                 // Execute Python script
                 val result = pythonRuntimeManager.executePythonScript(

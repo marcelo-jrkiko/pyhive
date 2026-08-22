@@ -30,10 +30,33 @@ def _parse_args(args_payload):
         return parsed
     raise TypeError("Task args must be a JSON object")
 
-def get_output_paths(output_dir):    
+def _open_line_buffered(path):
+    """Open a text file that flushes after every write for real-time log visibility."""
+    f = open(path, "w", encoding="utf-8", buffering=1)  # line-buffered
+
+    # Wrap so that even writes without a trailing newline are flushed immediately.
+    class _FlushWrapper:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def write(self, data):
+            self._inner.write(data)
+            self._inner.flush()
+
+        def flush(self):
+            self._inner.flush()
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+    return _FlushWrapper(f)
+
+
+def get_output_paths(output_dir):
     stdout_path = os.path.join(output_dir, f"stdout.log")
     stderr_path = os.path.join(output_dir, f"stderr.log")
     return stdout_path, stderr_path
+
 
 def _run_task(params, stdfiles=None):
     task_id = str(params["taskId"])
@@ -52,8 +75,8 @@ def _run_task(params, stdfiles=None):
         "__builtins__": __builtins__,
     }
 
-    output_buffer = open(stdfiles["stdout"], "w", encoding="utf-8")
-    error_buffer = open(stdfiles["stderr"], "w", encoding="utf-8")
+    output_buffer = _open_line_buffered(stdfiles["stdout"])
+    error_buffer = _open_line_buffered(stdfiles["stderr"])
         
     result_text = ""
 

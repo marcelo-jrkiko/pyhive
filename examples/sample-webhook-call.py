@@ -14,10 +14,16 @@ def main(args):
     payload = {
         "event": "pyhive-request",
         "os-name": os.name,
-        "received-args": args
+        "received-args": args,
+        "count": 1
     }
 
     print(f"Sending webhook with payload")
-    send_webhook(payload)
-    sleep(10)
+    
+    for i in range(100):
+        payload["count"] = i + 1
+        print(f"Sending webhook with payload: {payload} / count: {i + 1}")
+        send_webhook(payload)
+        sleep(30)
+        
     print(f"Webhook sent successfully")
